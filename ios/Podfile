@@ -18,7 +18,7 @@ target 'BasicApp' do
   config = use_native_modules!
 
   # Explicitly set the Node.js binary path
-  ENV['NODE_BINARY'] = '/Users/sulemanbaloch/.nvm/versions/node/v18.20.5/bin/node'
+  ENV['NODE_BINARY'] = '/opt/homebrew/bin/node'
 
   # Enable Hermes explicitly
   use_react_native!(
@@ -27,7 +27,7 @@ target 'BasicApp' do
     :hermes_enabled => false # Ensure Hermes is disabled if not needed
   )
   
-  # Explicitly disable new architecture
+  # Keep stable architecture for now, focus on iOS 18.4 SDK compatibility
   ENV['RCT_NEW_ARCH_ENABLED'] = '0'
   
 
@@ -44,5 +44,53 @@ target 'BasicApp' do
       :mac_catalyst_enabled => false
       # :ccache_enabled => true # Uncomment if ccache is configured
     )
+    
+    # iOS 18.4 SDK compatibility settings
+    installer.pods_project.targets.each do |target|
+      target.build_configurations.each do |config|
+        # Set minimum iOS deployment target
+        config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+        
+        # Use C++17 for better compatibility
+        config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+        config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        
+        # iOS 18.4 SDK compatibility flags
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_NO_CONFIG=1'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_MOBILE=1'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_USE_LIBCPP=1'
+        
+        # Additional compatibility flags
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_DISABLE_AVAILABILITY=1'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_STRING_VIEW=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_EXPERIMENTAL_STRING_VIEW=0'
+      end
+    end
+    
+    # Also update the main project
+    installer.generated_projects.each do |project|
+      project.targets.each do |target|
+        target.build_configurations.each do |config|
+          # Set minimum iOS deployment target
+          config.build_settings['IPHONEOS_DEPLOYMENT_TARGET'] = '17.0'
+          
+          # Use C++17 for better compatibility
+          config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++17'
+          config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+          
+          # iOS 18.4 SDK compatibility flags
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= ['$(inherited)']
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_NO_CONFIG=1'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_MOBILE=1'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FOLLY_USE_LIBCPP=1'
+          
+          # Additional compatibility flags
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_DISABLE_AVAILABILITY=1'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_STRING_VIEW=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_EXPERIMENTAL_STRING_VIEW=0'
+        end
+      end
+    end
   end
 end
