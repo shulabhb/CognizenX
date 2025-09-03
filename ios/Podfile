@@ -65,6 +65,29 @@ target 'BasicApp' do
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_DISABLE_AVAILABILITY=1'
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_STRING_VIEW=0'
         config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_EXPERIMENTAL_STRING_VIEW=0'
+        
+        # Aggressive fmt library compatibility flags
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CHAR8_T=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_NONTYPE_TEMPLATE_ARGS=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_STRING_VIEW=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_EXPERIMENTAL_STRING_VIEW=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CHAR8_T=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_NONTYPE_TEMPLATE_ARGS=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'
+        
+        # Force fmt to use basic C++ features only
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_STRING_VIEW=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_EXPERIMENTAL_STRING_VIEW=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CHAR8_T=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_NONTYPE_TEMPLATE_ARGS=0'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'
+        
+        # Additional C++17 compatibility
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_DISABLE_DEPRECATION_WARNINGS=1'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_USE_CXX17_ABI=1'
+        config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_ABI_VERSION=2'
       end
     end
     
@@ -89,6 +112,29 @@ target 'BasicApp' do
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_DISABLE_AVAILABILITY=1'
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_STRING_VIEW=0'
           config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_EXPERIMENTAL_STRING_VIEW=0'
+          
+          # Aggressive fmt library compatibility flags
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CHAR8_T=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_NONTYPE_TEMPLATE_ARGS=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_STRING_VIEW=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_EXPERIMENTAL_STRING_VIEW=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CHAR8_T=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_NONTYPE_TEMPLATE_ARGS=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'
+          
+          # Force fmt to use basic C++ features only
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_STRING_VIEW=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_EXPERIMENTAL_STRING_VIEW=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CHAR8_T=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_NONTYPE_TEMPLATE_ARGS=0'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << 'FMT_USE_CONSTEXPR=0'
+          
+          # Additional C++17 compatibility
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_ENABLE_CXX17_REMOVED_FEATURES=1'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_DISABLE_DEPRECATION_WARNINGS=1'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_USE_CXX17_ABI=1'
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] << '_LIBCPP_ABI_VERSION=2'
         end
       end
     end
