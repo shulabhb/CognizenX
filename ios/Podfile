@@ -29,7 +29,6 @@ target 'BasicApp' do
   
   # Keep stable architecture for now, focus on iOS 18.4 SDK compatibility
   ENV['RCT_NEW_ARCH_ENABLED'] = '0'
-  
 
   target 'BasicAppTests' do
     inherit! :complete
