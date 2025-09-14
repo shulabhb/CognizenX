@@ -22,7 +22,8 @@ import axios from "axios";
 import Menu from "./Menu"; // Import the Menu component
 import { useFocusEffect } from "@react-navigation/native";
 
-const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`;
+// const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`; // Live URL
+const API_BASE_URL = `http://localhost:6000`; // Local development
 const { width, height } = Dimensions.get("window");
 
 // Category emojis mapping
@@ -319,22 +320,24 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.categoryEmoji}>{emoji}</Text>
             </View>
             <Text style={styles.categoryTitle}>{category}</Text>
-            <TouchableOpacity
-              style={styles.categoryButton}
-              onPress={() => {
-                if (isLoggedIn) {
-                  console.log(`Starting quiz for category: ${category}`);
-                  navigation.navigate("RandomQuestionsScreen", {
-                    categories: [category],
-                  });
-                } else {
-                  showLoginPrompt();
-                }
-              }}
-            >
-              <Text style={styles.categoryButtonText}>Start Quiz</Text>
-            </TouchableOpacity>
           </View>
+          
+          {/* Start Quiz Button - moved below category name */}
+          <TouchableOpacity
+            style={styles.categoryButton}
+            onPress={() => {
+              if (isLoggedIn) {
+                console.log(`Starting quiz for category: ${category}`);
+                navigation.navigate("RandomQuestionsScreen", {
+                  categories: [category],
+                });
+              } else {
+                showLoginPrompt();
+              }
+            }}
+          >
+            <Text style={styles.categoryButtonText}>Start Quiz</Text>
+          </TouchableOpacity>
           
           {/* Display subdomains if present */}
           {subDomains && subDomains.length > 0 ? (
@@ -645,7 +648,7 @@ const styles = StyleSheet.create({
   categoryHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 8,
   },
   categoryIconContainer: {
     width: 48,
@@ -689,6 +692,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    alignSelf: "flex-start",
+    marginBottom: 12,
   },
   categoryButtonText: {
     color: "#FFFFFF",

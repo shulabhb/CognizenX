@@ -25,7 +25,8 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
   const fetchRandomQuestions = async () => {
     console.log(categories?.join(','));
     try {
-      const response = await axios.get('https://dementia-backend-gamma.vercel.app/api/random-questions', {
+      // const response = await axios.get('https://dementia-backend-gamma.vercel.app/api/random-questions', { // Live URL
+      const response = await axios.get('http://localhost:6000/api/random-questions', { // Local development
       
         params: { categories: categories.join(',') },
       });
@@ -102,7 +103,8 @@ const generateAndSaveGPTQuestions = async () => {
       }));
 
       // Double-check the backend URL is set
-      await axios.post('https://dementia-backend-gamma.vercel.app/api/add-questions', {
+      // await axios.post('https://dementia-backend-gamma.vercel.app/api/add-questions', { // Live URL
+      await axios.post('http://localhost:6000/api/add-questions', { // Local development
         category: categories.join(','),
         domain: subDomain,
         questions: formattedQuestions,

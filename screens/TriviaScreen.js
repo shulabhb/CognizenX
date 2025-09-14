@@ -39,7 +39,8 @@ const TriviaScreen = ({ route }) => {
 
   const { category, subDomain } = route.params;
 
-  const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`;
+  // const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`; // Live URL
+  const API_BASE_URL = `http://localhost:6000`; // Local development
   const QUESTIONS_API_URL = `${API_BASE_URL}/api/questions?category=${category}&subDomain=${subDomain}`;
 
   // Toggle menu function
@@ -414,20 +415,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#6B7280',
     textAlign: 'center',
-  },
-  menuContainer: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    width: width * 0.7,
-    height: '100%',
-    backgroundColor: '#FFFFFF',
-    zIndex: 100,
-    elevation: 10,
-    shadowColor: '#000',
-    shadowOffset: { width: 4, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
   },
 });
 

@@ -19,7 +19,8 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Menu from './Menu'; // Import the Menu component
 
-const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`;
+// const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`; // Live URL
+const API_BASE_URL = `http://localhost:6000`; // Local development
 const { width, height } = Dimensions.get('window');
 
 // Menu icons
@@ -732,67 +733,6 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "500",
     fontSize: 14,
-  },
-  menu: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    width: width * 0.7,
-    height: "100%",
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 10,
-    paddingTop: StatusBar.currentHeight || 0,
-  },
-  menuHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 20,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  menuTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#4B5563",
-  },
-  closeButton: {
-    padding: 4,
-  },
-  closeIconText: {
-    fontSize: 22,
-    color: "#6B7280",
-  },
-  menuItemsContainer: {
-    padding: 12,
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginVertical: 4,
-  },
-  menuItemIcon: {
-    fontSize: 22,
-    marginRight: 16,
-  },
-  menuItemText: {
-    fontSize: 16,
-    color: "#4B5563",
-  },
-  logoutText: {
-    color: "#EF4444",
-  },
-  menuDivider: {
-    height: 1,
-    backgroundColor: "#E5E7EB",
-    marginVertical: 12,
   },
   overlay: {
     position: "absolute",
