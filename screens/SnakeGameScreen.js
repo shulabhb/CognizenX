@@ -9,7 +9,8 @@ import {
   SafeAreaView,
   Alert,
   PanResponder,
-  Animated
+  Animated,
+  Easing
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
@@ -120,8 +121,11 @@ const SnakeGameScreen = () => {
 
   // Check collision
   const checkCollision = (head, snakeBody, willGrow = false) => {
-    // No wall collision - we handle wrapping smoothly
-    // Check self collision (ignore tail if it will move)
+    // Wall collision only when walls are enabled
+    if (wallsEnabled && (head.x < 0 || head.x >= GRID_COLS || head.y < 0 || head.y >= GRID_ROWS)) {
+      return true;
+    }
+    // Check self collision (ignore tail if it will move this tick)
     const bodyToCheck = willGrow ? snakeBody : snakeBody.slice(0, -1);
     return bodyToCheck.some(segment => segment.x === head.x && segment.y === head.y);
   };
@@ -140,7 +144,8 @@ const SnakeGameScreen = () => {
     tickProgress.setValue(0);
     Animated.timing(tickProgress, {
       toValue: 1,
-      duration: speed, // Use exact game speed for seamless movement
+      duration: speed,
+      easing: Easing.linear,
       useNativeDriver: true, // transform animations → GPU
     }).start();
 
@@ -158,11 +163,13 @@ const SnakeGameScreen = () => {
       head.x += currentDirection.x;
       head.y += currentDirection.y;
 
-      // Handle smooth wall wrapping (always enabled for seamless experience)
-      if (head.x < 0) head.x = GRID_COLS - 1;
-      if (head.x >= GRID_COLS) head.x = 0;
-      if (head.y < 0) head.y = GRID_ROWS - 1;
-      if (head.y >= GRID_ROWS) head.y = 0;
+      // Handle smooth wall wrapping only when walls are disabled
+      if (!wallsEnabled) {
+        if (head.x < 0) head.x = GRID_COLS - 1;
+        if (head.x >= GRID_COLS) head.x = 0;
+        if (head.y < 0) head.y = GRID_ROWS - 1;
+        if (head.y >= GRID_ROWS) head.y = 0;
+      }
 
       // check if will grow this tick
       const willGrow = head.x === food.x && head.y === food.y;
@@ -378,21 +385,45 @@ const SnakeGameScreen = () => {
 
     // helper: grid → px
     const toPx = (c) => ({ x: c.x * GRID_SIZE, y: c.y * GRID_SIZE });
+    
+    // Wrap-aware interpolation endpoints in grid space
+    const wrapAwareEnds = (prev, curr) => {
+      let fromX = prev.x, toX = curr.x;
+      let fromY = prev.y, toY = curr.y;
+
+      const dx = curr.x - prev.x;
+      if (dx === -(GRID_COLS - 1)) {
+        // moved RIGHT across right edge (last col -> 0)
+        toX = curr.x + GRID_COLS; // 0 -> GRID_COLS (one past)
+      } else if (dx === (GRID_COLS - 1)) {
+        // moved LEFT across left edge (0 -> last col)
+        fromX = prev.x - GRID_COLS; // 0 -> -GRID_COLS (one before)
+      }
+
+      const dy = curr.y - prev.y;
+      if (dy === -(GRID_ROWS - 1)) {
+        // moved DOWN across bottom edge (last row -> 0)
+        toY = curr.y + GRID_ROWS;
+      } else if (dy === (GRID_ROWS - 1)) {
+        // moved UP across top edge (0 -> last row)
+        fromY = prev.y - GRID_ROWS;
+      }
+
+      return { fromX, toX, fromY, toY };
+    };
 
     snake.forEach((seg, i) => {
       const prev = prevSnakeRef.current[i] ?? seg; // fallback (spawn/grow)
-      const prevPx = toPx(prev);
-      const currPx = toPx(seg);
+      const adj = wrapAwareEnds(prev, seg);
 
       const translateX = tickProgress.interpolate({
         inputRange: [0, 1],
-        outputRange: [prevPx.x, currPx.x],
+        outputRange: [adj.fromX * GRID_SIZE, adj.toX * GRID_SIZE],
       });
       const translateY = tickProgress.interpolate({
         inputRange: [0, 1],
-        outputRange: [prevPx.y, currPx.y],
+        outputRange: [adj.fromY * GRID_SIZE, adj.toY * GRID_SIZE],
       });
-
       const isHead = i === 0;
       const isTail = i === snake.length - 1;
       const baseColor = gameOverAnimation ? '#EF4444' : snakeColor;
@@ -406,7 +437,7 @@ const SnakeGameScreen = () => {
 
       if (isHead) {
         // Snake head - larger and more prominent
-        const headDirection = lastDirectionRef.current;
+        const headDirection = nextDirection;
         segmentStyle = {
           width: size + 2,
           height: size + 2,
@@ -458,7 +489,13 @@ const SnakeGameScreen = () => {
         segmentContent = <Text style={styles.snakeBodyText}>●</Text>;
       }
 
-      board.push(
+      // detect if this segment wrapped this tick
+      const dx = seg.x - prev.x;
+      const dy = seg.y - prev.y;
+      const isWrapX = dx === (GRID_COLS - 1) || dx === -(GRID_COLS - 1);
+      const isWrapY = dy === (GRID_ROWS - 1) || dy === -(GRID_ROWS - 1);
+
+      const main = (
         <Animated.View
           key={`snake-${i}`}
           style={[
@@ -472,6 +509,34 @@ const SnakeGameScreen = () => {
           {segmentContent}
         </Animated.View>
       );
+
+      let ghost = null;
+      if (isWrapX || isWrapY) {
+        const ghostShiftX = isWrapX ? (dx > 0 ? -GRID_COLS * GRID_SIZE : GRID_COLS * GRID_SIZE) : 0;
+        const ghostShiftY = isWrapY ? (dy > 0 ? -GRID_ROWS * GRID_SIZE : GRID_ROWS * GRID_SIZE) : 0;
+
+        ghost = (
+          <Animated.View
+            key={`snake-ghost-${i}`}
+            style={[
+              segmentStyle,
+              {
+                position: 'absolute',
+                transform: [
+                  { translateX: Animated.add(translateX, new Animated.Value(ghostShiftX)) },
+                  { translateY: Animated.add(translateY, new Animated.Value(ghostShiftY)) },
+                ],
+                opacity: 1,
+              },
+            ]}
+          >
+            {segmentContent}
+          </Animated.View>
+        );
+      }
+
+      board.push(main);
+      if (ghost) board.push(ghost);
     });
 
     return board;
@@ -598,6 +663,19 @@ const SnakeGameScreen = () => {
               ]}
               {...panResponder.panHandlers}
             >
+              {/* faint grid to visualize container */}
+              {Array.from({ length: GRID_ROWS * GRID_COLS }).map((_, idx) => (
+                <View
+                  key={`cell-${idx}`}
+                  style={[
+                    styles.gameCell,
+                    {
+                      left: (idx % GRID_COLS) * GRID_SIZE,
+                      top: Math.floor(idx / GRID_COLS) * GRID_SIZE,
+                    },
+                  ]}
+                />
+              ))}
               {renderGameBoard()}
             </Animated.View>
             
@@ -854,6 +932,7 @@ const styles = StyleSheet.create({
     position: "relative",
     borderWidth: 1,
     borderColor: "#E2E8F0",
+    overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
@@ -865,6 +944,9 @@ const styles = StyleSheet.create({
     width: GRID_SIZE,
     height: GRID_SIZE,
     backgroundColor: "#FFFFFF",
+    borderRightWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderColor: "#EEF2F7",
   },
   snakeHead: {
     position: "absolute",

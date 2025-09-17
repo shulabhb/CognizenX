@@ -11,6 +11,9 @@ import RandomQuestionsScreen from "./screens/RandomQuestionsScreen";
 import GamesScreen from "./screens/GamesScreen";
 import SnakeGameScreen from "./screens/SnakeGameScreen";
 import PuzzlesGameScreen from "./screens/PuzzlesGameScreen";
+import JigsawGame from "./screens/JigsawGame";
+import MemoryMatchGame from "./screens/MemoryMatchGame";
+import PatternGame from "./screens/PatternGame";
 
 /*ting */
 const Stack = createStackNavigator();
@@ -43,6 +46,21 @@ const App = () => (
             <Stack.Screen 
                 name="PuzzlesGame" 
                 component={PuzzlesGameScreen} 
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+                name="JigsawGame" 
+                component={JigsawGame} 
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+                name="MemoryMatchGame" 
+                component={MemoryMatchGame} 
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+                name="PatternGame" 
+                component={PatternGame} 
                 options={{ headerShown: false }}
             />
             <Stack.Screen name="Trivia" component={TriviaScreen} />

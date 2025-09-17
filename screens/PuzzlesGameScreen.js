@@ -46,32 +46,39 @@ const PuzzlesGameScreen = () => {
       color: '#8B5CF6',
     },
     {
-      id: 'word',
-      title: 'Word Puzzle',
-      description: 'Find words hidden in the grid',
-      icon: '📝',
-      difficulty: 'Medium',
+      id: 'jigsaw',
+      title: 'Jigsaw',
+      description: 'Drag pieces to assemble simple images',
+      icon: '🧩',
+      difficulty: 'Easy',
       color: '#F59E0B',
     },
     {
-      id: 'number',
-      title: 'Number Sequence',
-      description: 'Complete the number patterns',
+      id: 'pattern',
+      title: 'Pattern Recognition',
+      description: 'Watch and repeat the colored circle pattern',
       icon: '🔢',
       difficulty: 'Medium',
       color: '#10B981',
     },
-    {
-      id: 'logic',
-      title: 'Logic Puzzle',
-      description: 'Solve logical reasoning problems',
-      icon: '🧩',
-      difficulty: 'Hard',
-      color: '#EF4444',
-    },
   ];
 
   const startPuzzle = (puzzleId) => {
+    // Navigate to the implemented screens directly
+    if (puzzleId === 'memory') {
+      navigation.navigate('MemoryMatchGame');
+      return;
+    }
+    if (puzzleId === 'jigsaw') {
+      navigation.navigate('JigsawGame');
+      return;
+    }
+    if (puzzleId === 'pattern') {
+      navigation.navigate('PatternGame');
+      return;
+    }
+
+    // Fallback to local placeholder mode if we ever add non-implemented ones
     setSelectedPuzzle(puzzleId);
     setGameStarted(true);
     setScore(0);
