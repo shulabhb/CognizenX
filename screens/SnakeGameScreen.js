@@ -120,11 +120,7 @@ const SnakeGameScreen = () => {
 
   // Check collision
   const checkCollision = (head, snakeBody, willGrow = false) => {
-    // Check wall collision (only if walls are enabled)
-    if (wallsEnabled && (head.x < 0 || head.x >= GRID_COLS || head.y < 0 || head.y >= GRID_ROWS)) {
-      return true;
-    }
-    
+    // No wall collision - we handle wrapping smoothly
     // Check self collision (ignore tail if it will move)
     const bodyToCheck = willGrow ? snakeBody : snakeBody.slice(0, -1);
     return bodyToCheck.some(segment => segment.x === head.x && segment.y === head.y);
@@ -162,13 +158,11 @@ const SnakeGameScreen = () => {
       head.x += currentDirection.x;
       head.y += currentDirection.y;
 
-      // Handle wall wrapping if walls are disabled
-      if (!wallsEnabled) {
-        if (head.x < 0) head.x = GRID_COLS - 1;
-        if (head.x >= GRID_COLS) head.x = 0;
-        if (head.y < 0) head.y = GRID_ROWS - 1;
-        if (head.y >= GRID_ROWS) head.y = 0;
-      }
+      // Handle smooth wall wrapping (always enabled for seamless experience)
+      if (head.x < 0) head.x = GRID_COLS - 1;
+      if (head.x >= GRID_COLS) head.x = 0;
+      if (head.y < 0) head.y = GRID_ROWS - 1;
+      if (head.y >= GRID_ROWS) head.y = 0;
 
       // check if will grow this tick
       const willGrow = head.x === food.x && head.y === food.y;
@@ -523,7 +517,7 @@ const SnakeGameScreen = () => {
             <Text style={styles.gameIcon}>🐍</Text>
             <Text style={styles.gameTitle}>Snake</Text>
             <View style={styles.subtleInstructions}>
-              <Text style={styles.instructionText}>Swipe to guide • Eat to grow • Avoid walls</Text>
+              <Text style={styles.instructionText}>Swipe to guide • Eat to grow • Wrap around edges</Text>
             </View>
             <TouchableOpacity style={styles.startButton} onPress={startGame}>
               <Text style={styles.startButtonText}>Start</Text>
@@ -555,7 +549,7 @@ const SnakeGameScreen = () => {
 
             {/* Wall Toggle */}
             <View style={styles.controlsContainer}>
-              <Text style={styles.controlLabel}>Walls:</Text>
+              <Text style={styles.controlLabel}>Visual Walls:</Text>
               <TouchableOpacity
                 style={[
                   styles.wallToggle,
