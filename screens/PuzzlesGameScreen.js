@@ -46,14 +46,6 @@ const PuzzlesGameScreen = () => {
       color: '#8B5CF6',
     },
     {
-      id: 'jigsaw',
-      title: 'Jigsaw',
-      description: 'Drag pieces to assemble simple images',
-      icon: '🧩',
-      difficulty: 'Easy',
-      color: '#F59E0B',
-    },
-    {
       id: 'pattern',
       title: 'Pattern Recognition',
       description: 'Watch and repeat the colored circle pattern',
@@ -67,10 +59,6 @@ const PuzzlesGameScreen = () => {
     // Navigate to the implemented screens directly
     if (puzzleId === 'memory') {
       navigation.navigate('MemoryMatchGame');
-      return;
-    }
-    if (puzzleId === 'jigsaw') {
-      navigation.navigate('JigsawGame');
       return;
     }
     if (puzzleId === 'pattern') {

@@ -55,10 +55,11 @@ const PatternGame = () => {
 
   const showPattern = (pattern) => {
     setShowingPattern(true);
-    // Pattern will be shown for 2 seconds per item
+    // Pattern will be shown for 1.5 seconds per item (minimum 3 seconds total)
+    const displayTime = Math.max(pattern.length * 1500, 3000);
     setTimeout(() => {
       setShowingPattern(false);
-    }, pattern.length * 2000 + 1000);
+    }, displayTime);
   };
 
   const handlePatternItemPress = (item) => {
@@ -91,12 +92,12 @@ const PatternGame = () => {
       const newScore = score + (level * 10);
       setScore(newScore);
       
-      if (level >= 5) {
-        // Game completed
+      if (level >= 10) {
+        // Game mastered - all 10 levels completed!
         setGameCompleted(true);
         Alert.alert(
-          '🎉 Excellent!',
-          `You completed all levels! Final score: ${newScore}`,
+          '🏆 Master Achieved!',
+          `Congratulations! You've mastered the pattern recognition game by completing all 10 levels! Final score: ${newScore}`,
           [
             { text: 'Play Again', onPress: initializeGame },
             { text: 'Back to Puzzles', onPress: () => navigation.goBack() }
@@ -134,7 +135,7 @@ const PatternGame = () => {
               style={[
                 styles.patternItem,
                 { backgroundColor: item.color },
-                { animationDelay: `${index * 2000}ms` }
+                { animationDelay: `${index * 1500}ms` }
               ]}
             >
               <Text style={styles.patternSymbol}>{item.symbol}</Text>
@@ -225,8 +226,8 @@ const PatternGame = () => {
             <Text style={styles.gameIcon}>🔍</Text>
             <Text style={styles.gameTitle}>Pattern Recognition</Text>
             <Text style={styles.gameDescription}>
-              Watch the pattern of colored circles, then tap them in the same order. 
-              The pattern gets longer with each level!
+              Watch the pattern of colored circles, then tap them in the same order.
+              Complete all 10 levels to master the game!
             </Text>
             <TouchableOpacity style={styles.startButton} onPress={initializeGame}>
               <Text style={styles.startButtonText}>Start Game</Text>
@@ -240,7 +241,8 @@ const PatternGame = () => {
             {!showingPattern && (
               <View style={styles.patternOptions}>
                 <Text style={styles.instructionsText}>
-                  Tap the circles in the same order as the pattern:
+                  Tap the circles in the same order as the pattern.{'\n'}
+                  Long patterns will wrap to multiple rows.
                 </Text>
                 <View style={styles.optionsGrid}>
                   {patternOptions.map((option) => (
@@ -375,6 +377,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    minHeight: 120, // Ensure enough space for wrapping
   },
   patternTitle: {
     fontSize: 18,
@@ -384,12 +387,15 @@ const styles = StyleSheet.create({
   },
   patternSequence: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     gap: 10,
+    maxWidth: width - 80, // Leave some margin on sides
   },
   patternItem: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
@@ -397,9 +403,10 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+    margin: 5, // Add some margin for better spacing when wrapping
   },
   patternSymbol: {
-    fontSize: 24,
+    fontSize: 20,
   },
   userSequenceContainer: {
     backgroundColor: "#FFFFFF",
@@ -412,6 +419,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 2,
+    minHeight: 100, // Ensure enough space for wrapping user sequence
   },
   userSequenceTitle: {
     fontSize: 18,
@@ -421,7 +429,10 @@ const styles = StyleSheet.create({
   },
   userSequence: {
     flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
     gap: 10,
+    maxWidth: width - 80, // Same as pattern sequence for consistency
   },
   userSequenceItem: {
     width: 50,
@@ -434,6 +445,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.2,
     shadowRadius: 4,
     elevation: 3,
+    margin: 5, // Add margin for better spacing when wrapping
   },
   userSequenceItemEmpty: {
     width: 50,
@@ -445,6 +457,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: "#D1D5DB",
     borderStyle: "dashed",
+    margin: 5, // Add margin for consistency with other items
   },
   userSequenceSymbol: {
     fontSize: 20,

@@ -23,9 +23,11 @@ const MemoryMatchGame = () => {
   const [gameCompleted, setGameCompleted] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
 
-  // Memory-friendly symbols for dementia patients
-  const symbols = ['🐶', '🐱', '🐰', '🐸', '🐯', '🐻', '🦊', '🐼'];
-  const cardSize = (width - 60) / 4; // 4 columns with padding
+  // Memory-friendly symbols for dementia patients (12 cards = 6 pairs)
+  const symbols = ['🐶', '🐱', '🐰', '🐸', '🐯', '🐻'];
+  // Calculate card size for 3x4 grid layout
+  const availableWidth = width - 60; // Account for padding
+  const cardSize = Math.min(availableWidth / 3, 80); // 3 columns, max 80px per card for better fit
 
   const initializeGame = useCallback(() => {
     // Create pairs of cards
@@ -50,7 +52,11 @@ const MemoryMatchGame = () => {
   }, []);
 
   const handleCardPress = (cardId) => {
-    if (flippedCards.length >= 2 || matchedCards.includes(cardId)) {
+    // Don't allow flipping if:
+    // 1. Already 2 cards are flipped
+    // 2. Card is already matched
+    // 3. Card is already flipped
+    if (flippedCards.length >= 2 || matchedCards.includes(cardId) || flippedCards.includes(cardId)) {
       return;
     }
 
@@ -59,19 +65,19 @@ const MemoryMatchGame = () => {
 
     if (newFlippedCards.length === 2) {
       setMoves(prev => prev + 1);
-      
+
       const [firstCardId, secondCardId] = newFlippedCards;
       const firstCard = cards.find(card => card.id === firstCardId);
       const secondCard = cards.find(card => card.id === secondCardId);
 
       if (firstCard.symbol === secondCard.symbol) {
-        // Match found
+        // Match found - keep both cards flipped and add to matched
         setMatchedCards(prev => [...prev, firstCardId, secondCardId]);
         setFlippedCards([]);
-        
-        // Check if game is completed
-        if (matchedCards.length + 2 === cards.length) {
-          setTimeout(() => {
+
+        // Check if game is completed (all 12 cards matched)
+        setTimeout(() => {
+          if (matchedCards.length + 2 >= cards.length) {
             setGameCompleted(true);
             Alert.alert(
               '🎉 Congratulations!',
@@ -81,8 +87,8 @@ const MemoryMatchGame = () => {
                 { text: 'Back to Puzzles', onPress: () => navigation.goBack() }
               ]
             );
-          }, 500);
-        }
+          }
+        }, 500);
       } else {
         // No match - flip cards back after delay
         setTimeout(() => {
@@ -94,24 +100,24 @@ const MemoryMatchGame = () => {
 
   const renderCard = (card) => {
     const isFlipped = flippedCards.includes(card.id) || matchedCards.includes(card.id);
-    
+
     return (
       <TouchableOpacity
         key={card.id}
         style={[
           styles.card,
-          { width: cardSize, height: cardSize },
-          isFlipped && styles.cardFlipped
+          { width: cardSize, height: cardSize }
         ]}
         onPress={() => handleCardPress(card.id)}
         activeOpacity={0.8}
+        disabled={isFlipped} // Disable touch when card is already flipped
       >
-        <View style={[styles.cardInner, isFlipped && styles.cardInnerFlipped]}>
-          <View style={styles.cardFront}>
+        <View style={styles.cardInner}>
+          <View style={[styles.cardFront, { opacity: isFlipped ? 0 : 1 }]}>
             <Text style={styles.cardSymbol}>❓</Text>
           </View>
-          <View style={styles.cardBack}>
-            <Text style={styles.cardSymbol}>{card.symbol}</Text>
+          <View style={[styles.cardBack, { opacity: isFlipped ? 1 : 0 }]}>
+            <Text style={styles.cardBackSymbol}>{card.symbol}</Text>
           </View>
         </View>
       </TouchableOpacity>
@@ -157,7 +163,7 @@ const MemoryMatchGame = () => {
           <Text style={styles.statValue}>{matchedCards.length / 2}</Text>
         </View>
         <View style={styles.statItem}>
-          <Text style={styles.statLabel}>Remaining</Text>
+          <Text style={styles.statLabel}>Pairs Left</Text>
           <Text style={styles.statValue}>{(cards.length - matchedCards.length) / 2}</Text>
         </View>
       </View>
@@ -170,6 +176,7 @@ const MemoryMatchGame = () => {
             <Text style={styles.gameTitle}>Memory Match</Text>
             <Text style={styles.gameDescription}>
               Find matching pairs of animal cards. Tap cards to flip them and test your memory!
+              Match all 6 pairs to win!
             </Text>
             <TouchableOpacity style={styles.startButton} onPress={initializeGame}>
               <Text style={styles.startButtonText}>Start Game</Text>
@@ -188,7 +195,8 @@ const MemoryMatchGame = () => {
       {gameStarted && !gameCompleted && (
         <View style={styles.instructionsContainer}>
           <Text style={styles.instructionsText}>
-            💡 Tap two cards to find matching pairs
+            💡 Tap two cards to find matching pairs{'\n'}
+            Match all 6 pairs to complete the game!
           </Text>
         </View>
       )}
@@ -295,18 +303,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    paddingTop: 10,
+    paddingBottom: 20,
   },
   cardsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "center",
+    alignItems: "flex-start",
     gap: 10,
+    paddingHorizontal: 15,
+    width: '100%',
   },
   card: {
-    margin: 5,
-  },
-  cardFlipped: {
-    transform: [{ rotateY: '180deg' }],
+    margin: 6,
+    aspectRatio: 1, // Ensure square cards
   },
   cardInner: {
     flex: 1,
@@ -316,12 +327,14 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     elevation: 3,
-  },
-  cardInnerFlipped: {
-    transform: [{ rotateY: '180deg' }],
+    position: "relative",
   },
   cardFront: {
-    flex: 1,
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
     justifyContent: "center",
@@ -341,11 +354,19 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 2,
     borderColor: "#F59E0B",
-    transform: [{ rotateY: '180deg' }],
+  },
+  cardBackSymbol: {
+    fontSize: 24,
+    fontWeight: "600",
+    textAlign: "center",
+    textShadowColor: 'rgba(0,0,0,0.3)',
+    textShadowOffset: { width: 1, height: 1 },
+    textShadowRadius: 2,
   },
   cardSymbol: {
-    fontSize: 32,
+    fontSize: 24,
     fontWeight: "600",
+    textAlign: "center",
   },
   instructionsContainer: {
     backgroundColor: "#DBEAFE",

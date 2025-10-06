@@ -18,8 +18,7 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-// const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`; // Live URL
-const API_BASE_URL = `http://localhost:6000`; // Local development
+const API_BASE_URL = `https://cognizen-x-backend.vercel.app`;
 const { width } = Dimensions.get("window");
 
 // Back button icon

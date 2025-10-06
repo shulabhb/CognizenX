@@ -82,6 +82,15 @@ const GamesScreen = () => {
       gradientEnd: '#34D399',
     },
     {
+      id: 'snakeTouch',
+      title: 'Touch Snake',
+      description: 'Touch and drag to control the snake (finger tracker)',
+      icon: '👆',
+      color: '#0EA5E9',
+      gradientStart: '#0EA5E9',
+      gradientEnd: '#38BDF8',
+    },
+    {
       id: 'puzzles',
       title: 'Puzzles',
       description: 'Brain-teasing puzzles for cognitive exercise',
@@ -96,6 +105,9 @@ const GamesScreen = () => {
     if (gameId === 'snake') {
       // Navigate to Snake game
       navigation.navigate('SnakeGame');
+    } else if (gameId === 'snakeTouch') {
+      // Navigate to Touch-controlled Snake game
+      navigation.navigate('SnakeTouch');
     } else if (gameId === 'puzzles') {
       // Navigate to Puzzles game
       navigation.navigate('PuzzlesGame');

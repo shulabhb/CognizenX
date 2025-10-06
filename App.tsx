@@ -10,8 +10,8 @@ import AnswerScreen from "./screens/AnswerScreen";
 import RandomQuestionsScreen from "./screens/RandomQuestionsScreen";
 import GamesScreen from "./screens/GamesScreen";
 import SnakeGameScreen from "./screens/SnakeGameScreen";
+import SnakeTouch from "./screens/SnakeTouch";
 import PuzzlesGameScreen from "./screens/PuzzlesGameScreen";
-import JigsawGame from "./screens/JigsawGame";
 import MemoryMatchGame from "./screens/MemoryMatchGame";
 import PatternGame from "./screens/PatternGame";
 
@@ -38,19 +38,19 @@ const App = () => (
                 component={GamesScreen} 
                 options={{ headerShown: false }}
             />
-            <Stack.Screen 
-                name="SnakeGame" 
-                component={SnakeGameScreen} 
+            <Stack.Screen
+                name="SnakeGame"
+                component={SnakeGameScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="SnakeTouch"
+                component={SnakeTouch}
                 options={{ headerShown: false }}
             />
             <Stack.Screen 
                 name="PuzzlesGame" 
                 component={PuzzlesGameScreen} 
-                options={{ headerShown: false }}
-            />
-            <Stack.Screen 
-                name="JigsawGame" 
-                component={JigsawGame} 
                 options={{ headerShown: false }}
             />
             <Stack.Screen 

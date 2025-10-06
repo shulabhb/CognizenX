@@ -19,8 +19,7 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Menu from './Menu'; // Import the Menu component
 
-// const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`; // Live URL
-const API_BASE_URL = `http://localhost:6000`; // Local development
+const API_BASE_URL = `https://cognizen-x-backend.vercel.app`;
 const { width, height } = Dimensions.get('window');
 
 // Menu icons
