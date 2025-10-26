@@ -3,6 +3,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import SignupScreen from "./screens/SignupScreen";
 import LoginScreen from "./screens/LoginScreen";
+import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
 import HomeScreen from "./screens/HomeScreen";
 import CategoriesScreen from  "./screens/CategoriesScreen";
 import TriviaScreen from "./screens/TriviaScreen";
@@ -28,6 +29,7 @@ const App = () => (
             />
             <Stack.Screen name="SignUp" component={SignupScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             <Stack.Screen 
                 name="Categories" 
                 component={CategoriesScreen} 
