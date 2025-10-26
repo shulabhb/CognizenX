@@ -134,7 +134,7 @@ const generateAndSaveGPTQuestions = async () => {
 
   const saveQuestionsToDatabase = async (questions) => {
     try {
-      const response = await axios.post('https://dementia-backend-gamma.vercel.app/api/save-questions', { questions });
+      const response = await axios.post('https://cognizen-x-backend.vercel.app/api/save-questions', { questions });
       if (response.status === 200) {
         console.log('Questions successfully saved to the database');
       } else {
