@@ -1,4 +1,4 @@
-package com.basicapp
+package com.cognizenx
 
 import android.app.Application
 import com.facebook.react.PackageList
