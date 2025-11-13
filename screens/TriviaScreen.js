@@ -39,7 +39,11 @@ const TriviaScreen = ({ route }) => {
 
   const { category, subDomain } = route.params;
 
-  const API_BASE_URL = `https://cognizen-x-backend.vercel.app`;
+  // Switch to local backend for testing (change to false for production)
+  const USE_LOCAL_BACKEND = false;
+  const API_BASE_URL = USE_LOCAL_BACKEND 
+    ? `http://127.0.0.1:6000`  // Local backend
+    : `https://cognizen-x-backend.vercel.app`;  // Production backend
   const QUESTIONS_API_URL = `${API_BASE_URL}/api/questions?category=${category}&subDomain=${subDomain}`;
 
   // Toggle menu function
@@ -161,7 +165,12 @@ const TriviaScreen = ({ route }) => {
           ]).start();
         } else {
           // Navigate to the results/answer screen
-          navigation.navigate('AnswerScreen', { selectedAnswers, questions });
+          navigation.navigate('AnswerScreen', { 
+            selectedAnswers, 
+            questions,
+            category: category,
+            subDomain: subDomain
+          });
         }
       }, 500);
     });
