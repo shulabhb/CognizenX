@@ -22,8 +22,11 @@ import Menu from "./Menu"; // Import the Menu component
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-// Production Backend URL
-const API_BASE_URL = `https://cognizen-x-backend.vercel.app`;
+// Switch to local backend for testing (change to false for production)
+const USE_LOCAL_BACKEND = false;
+const API_BASE_URL = USE_LOCAL_BACKEND 
+  ? `http://127.0.0.1:6000`  // Local backend
+  : `https://cognizen-x-backend.vercel.app`;  // Production backend
 const { width, height } = Dimensions.get("window");
 
 // Category emojis mapping
@@ -148,14 +151,16 @@ const HomeScreen = ({ navigation }) => {
     return grouped;
   };
   
-  // Check login status
+  // Check login status (just checks if token exists)
   const checkLoginStatus = async () => {
     try {
       const sessionToken = await AsyncStorage.getItem("sessionToken");
-      setIsLoggedIn(!!sessionToken);
-      return !!sessionToken;
+      const loggedIn = !!sessionToken;
+      setIsLoggedIn(loggedIn);
+      return loggedIn;
     } catch (error) {
       console.error("Error checking login status:", error);
+      setIsLoggedIn(false);
       return false;
     }
   };
@@ -172,6 +177,16 @@ const HomeScreen = ({ navigation }) => {
       if (loggedIn) {
         // User is logged in, fetch their preferences
         const sessionToken = await AsyncStorage.getItem("sessionToken");
+        
+        // Double-check token still exists (might have been cleared)
+        if (!sessionToken) {
+          console.log("Token was cleared, skipping preferences fetch");
+          setIsLoggedIn(false);
+          setPreferences([]);
+          setLoading(false);
+          return;
+        }
+        
         console.log("Fetching preferences with token:", sessionToken);
         
         const response = await axios.get(`${API_BASE_URL}/api/user-preferences`, {
@@ -213,6 +228,19 @@ const HomeScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error("Error fetching preferences:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error message:", error.message);
+      
+      // If it's a 401 (unauthorized), clear the invalid token
+      if (error.response?.status === 401) {
+        console.log("401 error - clearing invalid token");
+        await AsyncStorage.removeItem("sessionToken");
+        setIsLoggedIn(false);
+        setPreferences([]);
+        // Don't show alert - just silently clear token and show default categories
+        return;
+      }
+      
       if (isLoggedIn) {
         Alert.alert("Error", "Could not fetch your preferences. Please try again later.");
       }
@@ -329,8 +357,11 @@ const HomeScreen = ({ navigation }) => {
             onPress={() => {
               if (isLoggedIn) {
                 console.log(`Starting quiz for category: ${category}`);
+                // Use first subDomain if available, otherwise just category
+                const firstSubDomain = subDomains && subDomains.length > 0 ? subDomains[0] : null;
                 navigation.navigate("RandomQuestionsScreen", {
                   categories: [category],
+                  subDomain: firstSubDomain, // Pass first subDomain if available
                 });
               } else {
                 showLoginPrompt();

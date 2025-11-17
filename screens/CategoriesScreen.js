@@ -19,7 +19,11 @@ import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Menu from './Menu'; // Import the Menu component
 
-const API_BASE_URL = `https://cognizen-x-backend.vercel.app`;
+// Switch to local backend for testing (change to false for production)
+const USE_LOCAL_BACKEND = false;
+const API_BASE_URL = USE_LOCAL_BACKEND 
+  ? `http://127.0.0.1:6000`  // Local backend
+  : `https://cognizen-x-backend.vercel.app`;  // Production backend
 const { width, height } = Dimensions.get('window');
 
 // Menu icons
@@ -188,8 +192,33 @@ const CategoriesScreen = () => {
         setLoading(false);
       } catch (error) {
         console.error('Error fetching user ID:', error.response?.data || error.message);
-        Alert.alert('Error', 'Failed to retrieve user information. Please log in again.');
-        navigation.replace('Home');
+        console.error('Error response:', error.response?.data);
+        
+        // Clear invalid token immediately
+        await AsyncStorage.removeItem('sessionToken');
+        setIsLoggedIn(false);
+        setLoading(false);
+        
+        // Only show alert if it's a 401 (invalid token)
+        // For other errors, just navigate silently
+        if (error.response?.status === 401) {
+          const errorMessage = error.response?.data?.message || 
+                             'Your session has expired or is invalid. Please log in again.';
+          
+          Alert.alert(
+            'Authentication Required', 
+            errorMessage,
+            [
+              { 
+                text: 'OK', 
+                onPress: () => navigation.replace('Home')
+              }
+            ]
+          );
+        } else {
+          // For other errors, just navigate to Home without alert
+          navigation.replace('Home');
+        }
       }
     };
     
@@ -449,18 +478,9 @@ const CategoriesScreen = () => {
       
       console.log("Final combined preferences to send:", JSON.stringify(combinedPreferences));
       console.log("Selected categories:", JSON.stringify(categoriesForMessage));
-      // Update user preferences on the server with the combined list
-      for (const { category, subDomain } of categoriesForMessage) {
-        console.log("Logging activity for is sending request:", category, subDomain);
-        await axios.post(
-          `${API_BASE_URL}/api/log-activity`, 
-          { category, domain: subDomain }, 
-          {
-            headers: { Authorization: `Bearer ${sessionToken}` },
-          }
-        );
-        console.log("Activity logged successfully", category, subDomain);
-      }
+      
+      // Note: Activity is already logged above, no need to log again
+      console.log("Categories added successfully!");
       
       // Create a more descriptive success message
       const categoryCounts = {};
@@ -493,8 +513,32 @@ const CategoriesScreen = () => {
       showNotification(successMsg);
       
     } catch (error) {
-      console.error('Error adding categories:', error.response?.data || error.message);
-      Alert.alert('Error', 'Failed to add categories. Please try again.');
+      console.error('Error adding categories:', error);
+      console.error('Error response:', error.response?.data);
+      console.error('Error message:', error.message);
+      
+      // Check if it's an authentication error
+      if (error.response?.status === 401) {
+        // Clear invalid token
+        await AsyncStorage.removeItem('sessionToken');
+        Alert.alert(
+          'Authentication Required',
+          'Your session has expired. Please log in again to add categories.',
+          [
+            {
+              text: 'OK',
+              onPress: () => navigation.replace('Home')
+            }
+          ]
+        );
+      } else {
+        const errorMessage = error.response?.data?.message || 
+                           'Failed to add categories. Please try again.';
+        Alert.alert('Error', errorMessage);
+      }
+      
+      // Restore selections on error so user can try again
+      setSelectedCategories(categoriesForMessage);
     }
   };
 
