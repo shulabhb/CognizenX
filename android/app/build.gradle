@@ -89,7 +89,7 @@ android {
         applicationId "com.cognizenx"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 10262025
+        versionCode 1117202502
         versionName "1.2.0"
     }
     signingConfigs {

@@ -7,7 +7,6 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   Image,
   Animated,
   Dimensions,
@@ -21,6 +20,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import Menu from "./Menu"; // Import the Menu component
 import { useFocusEffect } from "@react-navigation/native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Production Backend URL
 const API_BASE_URL = `https://cognizen-x-backend.vercel.app`;
@@ -55,6 +55,7 @@ const CLOSE_ICON = "✕";
 const PLUS_ICON = "➕";
 
 const HomeScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [preferences, setPreferences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -407,7 +408,10 @@ const HomeScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, {
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        }]}>
       <StatusBar backgroundColor="#F5F3FF" barStyle="dark-content" />
       
       {/* Main Content */}
@@ -538,8 +542,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
     backgroundColor: "#F5F3FF",
   },
   headerTitle: {
