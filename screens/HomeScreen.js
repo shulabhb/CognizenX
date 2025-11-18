@@ -187,13 +187,41 @@ const HomeScreen = ({ navigation }) => {
           return;
         }
         
-        console.log("Fetching preferences with token:", sessionToken);
+        // Trim token to remove any whitespace
+        const trimmedToken = sessionToken.trim();
+        console.log("Fetching preferences with token:", trimmedToken.substring(0, 20) + "...");
         
-        const response = await axios.get(`${API_BASE_URL}/api/user-preferences`, {
-          headers: {
-            Authorization: `Bearer ${sessionToken}`,
-          },
-        });
+        // Retry logic for initial fetch (in case of timing issues after login)
+        let response;
+        let retries = 2;
+        let lastError;
+        
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            if (attempt > 0) {
+              // Wait before retry (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, 300 * attempt));
+              console.log(`Retrying preferences fetch (attempt ${attempt + 1}/${retries + 1})...`);
+            }
+            
+            response = await axios.get(`${API_BASE_URL}/api/user-preferences`, {
+              headers: {
+                Authorization: `Bearer ${trimmedToken}`,
+              },
+            });
+            
+            // Success - break out of retry loop
+            break;
+          } catch (error) {
+            lastError = error;
+            // If it's not a 401 or it's the last attempt, break
+            if (error.response?.status !== 401 || attempt === retries) {
+              throw error;
+            }
+            // Otherwise, continue to retry
+            console.log(`401 error on attempt ${attempt + 1}, will retry...`);
+          }
+        }
         
         console.log("Raw API Response:", JSON.stringify(response.data));
         
@@ -234,20 +262,29 @@ const HomeScreen = ({ navigation }) => {
       // If it's a 401 (unauthorized), clear the invalid token
       if (error.response?.status === 401) {
         console.log("401 error - clearing invalid token");
+        console.log("Token that failed:", trimmedToken ? trimmedToken.substring(0, 20) + "..." : "no token");
         await AsyncStorage.removeItem("sessionToken");
         setIsLoggedIn(false);
         setPreferences([]);
-        // Don't show alert - just silently clear token and show default categories
+        setLoading(false); // Make sure loading is cleared
+        // Show alert to user so they know what happened
+        Alert.alert(
+          "Authentication Error",
+          "Your session could not be verified. Please log in again.",
+          [{ text: "OK" }]
+        );
         return;
       }
       
+      // For other errors, still allow user to use app
       if (isLoggedIn) {
-        Alert.alert("Error", "Could not fetch your preferences. Please try again later.");
+        console.log("Non-401 error, allowing user to continue with default categories");
       }
       setPreferences([]);
+    } finally {
+      // Always clear loading state
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleLogout = async () => {
