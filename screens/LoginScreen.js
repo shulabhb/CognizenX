@@ -186,7 +186,7 @@ const LoginScreen = ({ navigation }) => {
 
               <TouchableOpacity 
                 style={styles.forgotPassword}
-                onPress={() => Alert.alert("Coming Soon", "Password recovery feature coming soon.")}
+                onPress={() => navigation.navigate("ForgotPassword")}
               >
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </TouchableOpacity>
