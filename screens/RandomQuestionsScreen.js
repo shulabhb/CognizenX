@@ -184,16 +184,7 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
 
   const saveQuestionsToDatabase = async (questions) => {
     try {
-      const sessionToken = await AsyncStorage.getItem('sessionToken');
-      const response = await axios.post(
-        `${API_BASE_URL}/api/add-questions`,
-        { questions },
-        {
-          headers: {
-            Authorization: `Bearer ${sessionToken}`,
-          },
-        }
-      );
+      const response = await axios.post('https://cognizen-x-backend.vercel.app/api/save-questions', { questions });
       if (response.status === 200) {
         console.log('Questions successfully saved to the database');
       } else {
