@@ -70,7 +70,15 @@ const ForgotPasswordScreen = ({ navigation }) => {
             {loading ? (
               <ActivityIndicator size="large" color="#A78BFA" style={{ marginTop: 16 }} />
             ) : (
-              <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+              <TouchableOpacity
+                style={[
+                  styles.submitButton,
+                  !email ? styles.submitButtonDisabled : styles.submitButtonEnabled,
+                ]}
+                onPress={handleSubmit}
+                activeOpacity={email ? 0.8 : 1}
+                disabled={!email}
+              >
                 <Text style={styles.submitText}>Send Reset Link</Text>
               </TouchableOpacity>
             )}
@@ -94,7 +102,9 @@ const styles = StyleSheet.create({
   form: { backgroundColor: "#FFF", padding: 20, borderRadius: 12, shadowColor: "#A78BFA", shadowOpacity: 0.1, shadowRadius: 10, elevation: 3 },
   label: { fontSize: 14, fontWeight: "600", color: "#4B5563", marginBottom: 8 },
   input: { height: 50, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: "#E5E7EB", backgroundColor: "#FAFAFA" },
-  submitButton: { marginTop: 16, backgroundColor: "#A78BFA", paddingVertical: 14, borderRadius: 10, alignItems: "center" },
+  submitButton: { marginTop: 16, paddingVertical: 14, borderRadius: 10, alignItems: "center" },
+  submitButtonEnabled: { backgroundColor: "#A78BFA", color: "#FFF" },
+  submitButtonDisabled: { backgroundColor: "#D1D5DB" },
   submitText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
   cancel: { marginTop: 12, alignItems: "center" },
   cancelText: { color: "#6B7280" },

@@ -19,6 +19,8 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 const API_BASE_URL = `https://cognizen-x-backend.vercel.app`;
+// const API_BASE_URL = `http://localhost:3000`;
+
 const { width } = Dimensions.get("window");
 
 // Back button icon
