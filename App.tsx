@@ -3,11 +3,18 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import SignupScreen from "./screens/SignupScreen";
 import LoginScreen from "./screens/LoginScreen";
+import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
 import HomeScreen from "./screens/HomeScreen";
 import CategoriesScreen from  "./screens/CategoriesScreen";
 import TriviaScreen from "./screens/TriviaScreen";
 import AnswerScreen from "./screens/AnswerScreen";
 import RandomQuestionsScreen from "./screens/RandomQuestionsScreen";
+import GamesScreen from "./screens/GamesScreen";
+import SnakeGameScreen from "./screens/SnakeGameScreen";
+import SnakeTouch from "./screens/SnakeTouch";
+import PuzzlesGameScreen from "./screens/PuzzlesGameScreen";
+import MemoryMatchGame from "./screens/MemoryMatchGame";
+import PatternGame from "./screens/PatternGame";
 
 /*ting */
 const Stack = createStackNavigator();
@@ -22,7 +29,42 @@ const App = () => (
             />
             <Stack.Screen name="SignUp" component={SignupScreen} />
             <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Categories" component={CategoriesScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+            <Stack.Screen 
+                name="Categories" 
+                component={CategoriesScreen} 
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+                name="Games" 
+                component={GamesScreen} 
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="SnakeGame"
+                component={SnakeGameScreen}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen
+                name="SnakeTouch"
+                component={SnakeTouch}
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+                name="PuzzlesGame" 
+                component={PuzzlesGameScreen} 
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+                name="MemoryMatchGame" 
+                component={MemoryMatchGame} 
+                options={{ headerShown: false }}
+            />
+            <Stack.Screen 
+                name="PatternGame" 
+                component={PatternGame} 
+                options={{ headerShown: false }}
+            />
             <Stack.Screen name="Trivia" component={TriviaScreen} />
             <Stack.Screen name="AnswerScreen" component={AnswerScreen} />
             <Stack.Screen name="RandomQuestionsScreen" component={RandomQuestionsScreen} />

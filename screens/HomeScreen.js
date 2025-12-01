@@ -7,7 +7,6 @@ import {
   FlatList,
   ActivityIndicator,
   Alert,
-  SafeAreaView,
   Image,
   Animated,
   Dimensions,
@@ -21,8 +20,13 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import Menu from "./Menu"; // Import the Menu component
 import { useFocusEffect } from "@react-navigation/native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
-const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`;
+// Switch to local backend for testing (change to false for production)
+const USE_LOCAL_BACKEND = false;
+const API_BASE_URL = USE_LOCAL_BACKEND 
+  ? `http://127.0.0.1:6000`  // Local backend
+  : `https://cognizen-x-backend.vercel.app`;  // Production backend
 const { width, height } = Dimensions.get("window");
 
 // Category emojis mapping
@@ -54,6 +58,7 @@ const CLOSE_ICON = "✕";
 const PLUS_ICON = "➕";
 
 const HomeScreen = ({ navigation }) => {
+  const insets = useSafeAreaInsets();
   const [preferences, setPreferences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -146,14 +151,16 @@ const HomeScreen = ({ navigation }) => {
     return grouped;
   };
   
-  // Check login status
+  // Check login status (just checks if token exists)
   const checkLoginStatus = async () => {
     try {
       const sessionToken = await AsyncStorage.getItem("sessionToken");
-      setIsLoggedIn(!!sessionToken);
-      return !!sessionToken;
+      const loggedIn = !!sessionToken;
+      setIsLoggedIn(loggedIn);
+      return loggedIn;
     } catch (error) {
       console.error("Error checking login status:", error);
+      setIsLoggedIn(false);
       return false;
     }
   };
@@ -170,13 +177,51 @@ const HomeScreen = ({ navigation }) => {
       if (loggedIn) {
         // User is logged in, fetch their preferences
         const sessionToken = await AsyncStorage.getItem("sessionToken");
-        console.log("Fetching preferences with token:", sessionToken);
         
-        const response = await axios.get(`${API_BASE_URL}/api/user-preferences`, {
-          headers: {
-            Authorization: `Bearer ${sessionToken}`,
-          },
-        });
+        // Double-check token still exists (might have been cleared)
+        if (!sessionToken) {
+          console.log("Token was cleared, skipping preferences fetch");
+          setIsLoggedIn(false);
+          setPreferences([]);
+          setLoading(false);
+          return;
+        }
+        
+        // Trim token to remove any whitespace
+        const trimmedToken = sessionToken.trim();
+        console.log("Fetching preferences with token:", trimmedToken.substring(0, 20) + "...");
+        
+        // Retry logic for initial fetch (in case of timing issues after login)
+        let response;
+        let retries = 2;
+        let lastError;
+        
+        for (let attempt = 0; attempt <= retries; attempt++) {
+          try {
+            if (attempt > 0) {
+              // Wait before retry (exponential backoff)
+              await new Promise(resolve => setTimeout(resolve, 300 * attempt));
+              console.log(`Retrying preferences fetch (attempt ${attempt + 1}/${retries + 1})...`);
+            }
+            
+            response = await axios.get(`${API_BASE_URL}/api/user-preferences`, {
+              headers: {
+                Authorization: `Bearer ${trimmedToken}`,
+              },
+            });
+            
+            // Success - break out of retry loop
+            break;
+          } catch (error) {
+            lastError = error;
+            // If it's not a 401 or it's the last attempt, break
+            if (error.response?.status !== 401 || attempt === retries) {
+              throw error;
+            }
+            // Otherwise, continue to retry
+            console.log(`401 error on attempt ${attempt + 1}, will retry...`);
+          }
+        }
         
         console.log("Raw API Response:", JSON.stringify(response.data));
         
@@ -211,13 +256,35 @@ const HomeScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error("Error fetching preferences:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Error message:", error.message);
+      
+      // If it's a 401 (unauthorized), clear the invalid token
+      if (error.response?.status === 401) {
+        console.log("401 error - clearing invalid token");
+        console.log("Token that failed:", trimmedToken ? trimmedToken.substring(0, 20) + "..." : "no token");
+        await AsyncStorage.removeItem("sessionToken");
+        setIsLoggedIn(false);
+        setPreferences([]);
+        setLoading(false); // Make sure loading is cleared
+        // Show alert to user so they know what happened
+        Alert.alert(
+          "Authentication Error",
+          "Your session could not be verified. Please log in again.",
+          [{ text: "OK" }]
+        );
+        return;
+      }
+      
+      // For other errors, still allow user to use app
       if (isLoggedIn) {
-        Alert.alert("Error", "Could not fetch your preferences. Please try again later.");
+        console.log("Non-401 error, allowing user to continue with default categories");
       }
       setPreferences([]);
+    } finally {
+      // Always clear loading state
+      setLoading(false);
     }
-    
-    setLoading(false);
   };
 
   const handleLogout = async () => {
@@ -319,22 +386,27 @@ const HomeScreen = ({ navigation }) => {
               <Text style={styles.categoryEmoji}>{emoji}</Text>
             </View>
             <Text style={styles.categoryTitle}>{category}</Text>
-            <TouchableOpacity
-              style={styles.categoryButton}
-              onPress={() => {
-                if (isLoggedIn) {
-                  console.log(`Starting quiz for category: ${category}`);
-                  navigation.navigate("RandomQuestionsScreen", {
-                    categories: [category],
-                  });
-                } else {
-                  showLoginPrompt();
-                }
-              }}
-            >
-              <Text style={styles.categoryButtonText}>Start Quiz</Text>
-            </TouchableOpacity>
           </View>
+          
+          {/* Start Quiz Button - moved below category name */}
+          <TouchableOpacity
+            style={styles.categoryButton}
+            onPress={() => {
+              if (isLoggedIn) {
+                console.log(`Starting quiz for category: ${category}`);
+                // Use first subDomain if available, otherwise just category
+                const firstSubDomain = subDomains && subDomains.length > 0 ? subDomains[0] : null;
+                navigation.navigate("RandomQuestionsScreen", {
+                  categories: [category],
+                  subDomain: firstSubDomain, // Pass first subDomain if available
+                });
+              } else {
+                showLoginPrompt();
+              }
+            }}
+          >
+            <Text style={styles.categoryButtonText}>Start Quiz</Text>
+          </TouchableOpacity>
           
           {/* Display subdomains if present */}
           {subDomains && subDomains.length > 0 ? (
@@ -404,7 +476,10 @@ const HomeScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, {
+          paddingTop: insets.top,
+          paddingBottom: insets.bottom,
+        }]}>
       <StatusBar backgroundColor="#F5F3FF" barStyle="dark-content" />
       
       {/* Main Content */}
@@ -535,8 +610,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
     backgroundColor: "#F5F3FF",
   },
   headerTitle: {
@@ -645,7 +718,7 @@ const styles = StyleSheet.create({
   categoryHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 8,
   },
   categoryIconContainer: {
     width: 48,
@@ -689,6 +762,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
+    alignSelf: "flex-start",
+    marginBottom: 12,
   },
   categoryButtonText: {
     color: "#FFFFFF",

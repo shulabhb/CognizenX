@@ -1,57 +1,101 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, SafeAreaView, StatusBar } from 'react-native';
 import axios from 'axios';
-import { CHATGPT_API_KEY } from '@env';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Switch to local backend for testing (change to false for production)
+const USE_LOCAL_BACKEND = false;
+const API_BASE_URL = USE_LOCAL_BACKEND 
+  ? `http://127.0.0.1:6000`  // Local backend
+  : `https://cognizen-x-backend.vercel.app`;  // Production backend
 
 const AnswerScreen = ({ route, navigation }) => {
-  const { selectedAnswers = [], questions = [] } = route.params;
+  const { selectedAnswers = [], questions = [], category, subDomain } = route.params;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState('');
 
-
-
-
-
   useEffect(() => {
     if (questions[currentIndex] && selectedAnswers[currentIndex]) {
+      const currentQuestion = questions[currentIndex];
+      // Ensure questionId is a string (MongoDB ObjectId as string)
+      const questionId = currentQuestion._id?.toString() || currentQuestion._id || null;
+      console.log('Fetching explanation for question:', {
+        questionId,
+        category,
+        subDomain,
+        hasId: !!currentQuestion._id
+      });
       fetchDescription(
-        questions[currentIndex].question,
+        currentQuestion.question,
         selectedAnswers[currentIndex].answer,
-        questions[currentIndex].correctAnswer
+        currentQuestion.correctAnswer || currentQuestion.correct_answer,
+        questionId, // MongoDB ObjectId as string
+        category,
+        subDomain
       );
     } else {
       setDescription("No data available for this question.");
     }
   }, [currentIndex]);
 
-  const fetchDescription = async (question, userAnswer, correctAnswer) => {
+  const fetchDescription = async (question, userAnswer, correctAnswer, questionId, category, subDomain) => {
     setLoading(true);
     try {
-      const prompt = `Provide a concise 3-line description for the following trivia question: "${question}". 
-User's answer: "${userAnswer}".
-Correct answer: "${correctAnswer}".
-Explain why the correct answer is correct and provide brief context.`;
+      // Get session token for authentication
+      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      if (!sessionToken) {
+        setDescription("Please log in to get explanations for answers.");
+        setLoading(false);
+        return;
+      }
 
+      // Call backend endpoint to generate explanation
+      // Include questionId, category, and subDomain for caching
       const response = await axios.post(
-        'https://api.openai.com/v1/chat/completions',
+        `${API_BASE_URL}/api/generate-explanation`,
         {
-          model: 'gpt-4',
-          messages: [{ role: 'user', content: prompt }],
+          question: question,
+          userAnswer: userAnswer,
+          correctAnswer: correctAnswer,
+          questionId: questionId, // MongoDB ObjectId for caching
+          category: category,     // For finding the question in database
+          subDomain: subDomain     // For finding the question in database
         },
         {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${CHATGPT_API_KEY}`,
+            Authorization: `Bearer ${sessionToken}`,
           },
         }
       );
 
-      const generatedText = response.data.choices[0]?.message?.content.trim();
-      setDescription(generatedText || "Could not generate a description at this time.");
+      if (response.data.status === 'success') {
+        setDescription(response.data.explanation || "Could not generate a description at this time.");
+      } else {
+        setDescription("Error generating description. Please try again later.");
+      }
     } catch (error) {
       console.error('Error fetching description:', error);
-      setDescription("Error generating description. Please try again later.");
+      console.error('Error response:', error.response?.data);
+      
+      // Provide more specific error messages
+      if (error.response?.status === 401) {
+        setDescription("Authentication required. Please log in to get explanations.");
+      } else if (error.response?.status === 500) {
+        const errorMsg = error.response?.data?.message || error.message || 'Server error';
+        
+        // Handle OpenAI quota/rate limit errors gracefully
+        if (errorMsg.includes('quota') || errorMsg.includes('429') || errorMsg.includes('rate limit')) {
+          setDescription("Explanation generation is temporarily unavailable due to API limits. Please try again later.");
+        } else if (errorMsg.includes('API key')) {
+          setDescription("Explanation generation is currently unavailable. Please contact support.");
+        } else {
+          setDescription("Unable to generate explanation at this time. Please try again later.");
+        }
+      } else {
+        setDescription("Unable to generate explanation. Please try again later.");
+      }
     } finally {
       setLoading(false);
     }

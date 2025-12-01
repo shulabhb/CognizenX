@@ -6,33 +6,30 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
-  StatusBar,
-  TouchableWithoutFeedback,
-  Alert
+  Alert,
+  Platform,
+  StatusBar
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 
-const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`;
-const { width } = Dimensions.get('window');
-
-// Menu icons
-const CLOSE_ICON = '✕';
+// Switch to local backend for testing (change to false for production)
+const USE_LOCAL_BACKEND = false;
+const API_BASE_URL = USE_LOCAL_BACKEND 
+  ? `http://127.0.0.1:6000`  // Local backend
+  : `https://cognizen-x-backend.vercel.app`;  // Production backend
+const { width, height } = Dimensions.get('window');
 
 const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handleLogout }) => {
   
-  // Handle delete account
   const handleDeleteAccount = async () => {
     try {
-      // Show confirmation dialog first
       Alert.alert(
         "Delete Account", 
         "Are you sure you want to delete your account? This action cannot be undone and all your data will be permanently lost.",
         [
-          {
-            text: "Cancel",
-            style: "cancel"
-          },
+          { text: "Cancel", style: "cancel" },
           {
             text: "Delete", 
             style: "destructive",
@@ -45,36 +42,20 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
                   return;
                 }
                 
-                // Call the delete account endpoint
                 await axios.delete(`${API_BASE_URL}/api/auth/delete-account`, {
-                  headers: {
-                    Authorization: `Bearer ${sessionToken}`,
-                  },
+                  headers: { Authorization: `Bearer ${sessionToken}` },
                 });
                 
-                // Clear session token
                 await AsyncStorage.removeItem("sessionToken");
                 
-                // Show success message
                 Alert.alert(
                   "Account Deleted", 
                   "Your account has been successfully deleted.",
-                  [
-                    {
-                      text: "OK",
-                      onPress: () => {
-                        closeMenu();
-                        navigation.replace("Home");
-                      }
-                    }
-                  ]
+                  [{ text: "OK", onPress: () => { closeMenu(); navigation.replace("Home"); } }]
                 );
               } catch (error) {
                 console.error("Error deleting account:", error);
-                Alert.alert(
-                  "Error", 
-                  "Failed to delete account. Please try again later."
-                );
+                Alert.alert("Error", "Failed to delete account. Please try again later.");
               }
             }
           }
@@ -86,212 +67,165 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
     }
   };
   
+  if (!isOpen) {
+    return null;
+  }
+
   return (
     <>
-      <Animated.View style={[styles.menu, { transform: [{ translateX: menuAnimation }] }]}>
-        <View style={styles.menuHeader}>
-          <Text style={styles.menuTitle}>Menu</Text>
+      {/* Full Screen Menu Container */}
+      <Animated.View style={[styles.menuContainer, { transform: [{ translateX: menuAnimation }] }]}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.title}>Menu</Text>
           <TouchableOpacity onPress={closeMenu} style={styles.closeButton}>
-            <Text style={styles.closeIconText}>{CLOSE_ICON}</Text>
+            <Text style={styles.closeIcon}>✕</Text>
           </TouchableOpacity>
         </View>
         
-        <View style={styles.menuItemsContainer}>
-          {/* Home */}
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => {
-              // Navigate first, then close menu
-              navigation.navigate("Home");
-              closeMenu();
-            }}
-          >
-            <Text style={styles.menuItemIcon}>🏠</Text>
-            <Text style={styles.menuItemText}>Home</Text>
+        {/* Menu Items Container */}
+        <View style={styles.menuItems}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Home"); closeMenu(); }}>
+            <Text style={styles.menuIcon}>🏠</Text>
+            <Text style={styles.menuText}>Home</Text>
           </TouchableOpacity>
           
-          {/* Categories - only shown for logged in users */}
           {isLoggedIn && (
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={() => {
-                // Navigate first, then close menu
-                navigation.navigate("Categories");
-                closeMenu();
-              }}
-            >
-              <Text style={styles.menuItemIcon}>📂</Text>
-              <Text style={styles.menuItemText}>Categories</Text>
+            <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Categories"); closeMenu(); }}>
+              <Text style={styles.menuIcon}>📂</Text>
+              <Text style={styles.menuText}>Categories</Text>
             </TouchableOpacity>
           )}
           
-          {/* Login - only shown for anonymous users */}
           {!isLoggedIn && (
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={() => {
-                navigation.navigate("Login");
-                closeMenu();
-              }}
-            >
-              <Text style={styles.menuItemIcon}>🔑</Text>
-              <Text style={styles.menuItemText}>Log In</Text>
+            <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Login"); closeMenu(); }}>
+              <Text style={styles.menuIcon}>🔑</Text>
+              <Text style={styles.menuText}>Log In</Text>
             </TouchableOpacity>
           )}
           
-          {/* Sign Up - only shown for anonymous users */}
           {!isLoggedIn && (
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={() => {
-                navigation.navigate("SignUp");
-                closeMenu();
-              }}
-            >
-              <Text style={styles.menuItemIcon}>📝</Text>
-              <Text style={styles.menuItemText}>Sign Up</Text>
+            <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("SignUp"); closeMenu(); }}>
+              <Text style={styles.menuIcon}>📝</Text>
+              <Text style={styles.menuText}>Sign Up</Text>
             </TouchableOpacity>
           )}
           
-          {/* History (Coming Soon) */}
-          <TouchableOpacity 
-            style={styles.menuItem}
-            onPress={() => {
-              // Show alert first, then close menu
-              Alert.alert("Coming Soon", "History feature will be available in the next update!");
-              closeMenu();
-            }}
-          >
-            <Text style={styles.menuItemIcon}>🕒</Text>
-            <Text style={styles.menuItemText}>History</Text>
+          <TouchableOpacity style={styles.menuItem} onPress={() => { Alert.alert("Coming Soon", "History feature will be available in the next update!"); closeMenu(); }}>
+            <Text style={styles.menuIcon}>🕒</Text>
+            <Text style={styles.menuText}>History</Text>
           </TouchableOpacity>
-        </View>
-        
-        {/* Account actions for logged in users */}
-        {isLoggedIn && (
-          <View style={styles.logoutContainer}>
-            <View style={styles.menuDivider} />
-            
-            {/* Logout option */}
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={() => {
-                // Use the handleLogout prop if available, otherwise fallback to old implementation
+          
+          <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Games"); closeMenu(); }}>
+            <Text style={styles.menuIcon}>🎮</Text>
+            <Text style={styles.menuText}>Games</Text>
+          </TouchableOpacity>
+          
+          {/* Account Actions */}
+          {isLoggedIn && (
+            <>
+              <View style={styles.divider} />
+              <TouchableOpacity style={styles.menuItem} onPress={() => {
                 if (handleLogout) {
                   handleLogout();
                 } else {
-                  try {
-                    AsyncStorage.removeItem("sessionToken");
-                    Alert.alert("Logout Successful", "You have been logged out.");
-                    navigation.replace("Login");
-                  } catch (error) {
-                    console.error("Logout Error:", error);
-                    Alert.alert("Error", "Failed to log out. Please try again.");
-                  }
+                  AsyncStorage.removeItem("sessionToken");
+                  Alert.alert("Logout Successful", "You have been logged out.");
+                  navigation.replace("Login");
                 }
                 closeMenu();
-              }}
-            >
-              <Text style={styles.menuItemIcon}>🚪</Text>
-              <Text style={[styles.menuItemText, styles.logoutText]}>Logout</Text>
-            </TouchableOpacity>
-            
-            {/* Delete Account option */}
-            <TouchableOpacity 
-              style={styles.menuItem}
-              onPress={() => {
-                handleDeleteAccount();
-              }}
-            >
-              <Text style={styles.menuItemIcon}>🗑️</Text>
-              <Text style={[styles.menuItemText, styles.deleteAccountText]}>Delete Account</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+              }}>
+                <Text style={styles.menuIcon}>🚪</Text>
+                <Text style={[styles.menuText, styles.dangerText]}>Logout</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity style={styles.menuItem} onPress={() => { handleDeleteAccount(); }}>
+                <Text style={styles.menuIcon}>🗑️</Text>
+                <Text style={[styles.menuText, styles.dangerText]}>Delete Account</Text>
+              </TouchableOpacity>
+            </>
+          )}
+        </View>
       </Animated.View>
       
-      {/* Overlay to close menu when clicking outside */}
-      {isOpen && (
-        <TouchableWithoutFeedback onPress={closeMenu}>
-          <View style={styles.overlay} />
-        </TouchableWithoutFeedback>
-      )}
+      {/* Overlay */}
+      <TouchableWithoutFeedback onPress={closeMenu}>
+        <View style={styles.overlay} />
+      </TouchableWithoutFeedback>
     </>
   );
 };
 
 const styles = StyleSheet.create({
-  menu: {
+  menuContainer: {
     position: "absolute",
     top: 0,
     left: 0,
-    width: width * 0.7,
-    height: "100%",
+    width: width * 0.8,
+    height: height,
     backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.2,
-    shadowRadius: 10,
-    elevation: 10,
-    paddingTop: StatusBar.currentHeight || 0,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 8,
     zIndex: 1000,
   },
-  menuHeader: {
+  header: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    padding: 20,
+    paddingHorizontal: 24,
+    paddingTop: Platform.OS === 'ios' ? 60 : 40,
+    paddingBottom: 20,
+    backgroundColor: "#F8FAFC",
     borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
+    borderBottomColor: "#E2E8F0",
   },
-  menuTitle: {
+  title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#4B5563",
+    color: "#1E293B",
   },
   closeButton: {
-    padding: 4,
+    padding: 8,
+    borderRadius: 20,
+    backgroundColor: "#F1F5F9",
   },
-  closeIconText: {
-    fontSize: 22,
-    color: "#6B7280",
+  closeIcon: {
+    fontSize: 16,
+    color: "#64748B",
+    fontWeight: "600",
   },
-  menuItemsContainer: {
-    padding: 12,
+  menuItems: {
+    flex: 1,
+    paddingHorizontal: 24,
+    paddingTop: 24,
   },
   menuItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-    marginVertical: 4,
+    paddingVertical: 18,
+    paddingHorizontal: 0,
   },
-  menuItemIcon: {
+  menuIcon: {
     fontSize: 22,
-    marginRight: 16,
+    marginRight: 20,
+    width: 28,
   },
-  menuItemText: {
-    fontSize: 16,
-    color: "#4B5563",
+  menuText: {
+    fontSize: 17,
+    color: "#334155",
+    fontWeight: "500",
   },
-  logoutContainer: {
-    position: "absolute",
-    bottom: 30,
-    left: 0,
-    right: 0,
-    padding: 12,
-  },
-  menuDivider: {
+  divider: {
     height: 1,
-    backgroundColor: "#E5E7EB",
-    marginVertical: 12,
+    backgroundColor: "#E2E8F0",
+    marginVertical: 20,
+    marginHorizontal: 0,
   },
-  logoutText: {
-    color: "#EF4444",
-  },
-  deleteAccountText: {
-    color: "#EF4444",
+  dangerText: {
+    color: "#DC2626",
     fontWeight: "600",
   },
   overlay: {
@@ -300,9 +234,9 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "transparent",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
     zIndex: 999,
   },
 });
 
-export default Menu; 
+export default Menu;

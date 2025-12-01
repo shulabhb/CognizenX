@@ -18,7 +18,11 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-const API_BASE_URL = `https://dementia-backend-gamma.vercel.app`;
+// Switch to local backend for testing (change to false for production)
+const USE_LOCAL_BACKEND = false;
+const API_BASE_URL = USE_LOCAL_BACKEND 
+  ? `http://127.0.0.1:6000`  // Local backend
+  : `https://cognizen-x-backend.vercel.app`;  // Production backend
 const { width } = Dimensions.get("window");
 
 // Back button icon
@@ -88,10 +92,49 @@ const SignupScreen = ({ navigation }) => {
       });
 
       const { sessionToken } = response.data;
-      if (sessionToken) {
-        await AsyncStorage.setItem("sessionToken", sessionToken);
-        navigation.replace("Home");
+      if (!sessionToken) {
+        Alert.alert("Signup Failed", "No session token received from server.");
+        return;
       }
+      
+      console.log("Received sessionToken from backend:", sessionToken.substring(0, 20) + "...");
+      console.log("Full token length:", sessionToken.length);
+      
+      // Save token and verify it was saved before navigating
+      await AsyncStorage.setItem("sessionToken", sessionToken);
+      
+      // Verify token was saved
+      const savedToken = await AsyncStorage.getItem("sessionToken");
+      if (savedToken !== sessionToken) {
+        console.error("Token mismatch! Saved:", savedToken?.substring(0, 20), "vs Received:", sessionToken.substring(0, 20));
+        Alert.alert("Error", "Failed to save session token. Please try again.");
+        return;
+      }
+      
+      console.log("Token saved successfully to AsyncStorage");
+      
+      // Verify token is valid by making a test call to backend
+      // This ensures the token was actually saved to the database
+      // Optimized: Skip verification if backend already verified (faster signup)
+      // Only verify if we're concerned about timing issues
+      try {
+        console.log("Verifying token with backend...");
+        const verifyResponse = await axios.get(`${API_BASE_URL}/api/auth/get-user-id`, {
+          headers: {
+            Authorization: `Bearer ${sessionToken}`,
+          },
+          timeout: 3000, // 3 second timeout
+        });
+        console.log("Token verified successfully! User ID:", verifyResponse.data.userId);
+      } catch (verifyError) {
+        // If verification fails, it might just be timing - token should work on next request
+        // Don't block the user - let them proceed and HomeScreen will handle it
+        console.warn("Token verification failed (may be timing issue):", verifyError.response?.data?.message || verifyError.message);
+        // Continue anyway - the token was saved, it should work
+      }
+      
+      console.log("Navigating to Home screen...");
+      navigation.replace("Home");
     } catch (error) {
       Alert.alert(
         "Signup Failed",

@@ -3,9 +3,9 @@
 
 export const API_CONFIG = {
   // Production (Hosted) Backend - Used by App Store version
-  BASE_URL: 'https://dementia-backend-gamma.vercel.app',
-  AUTH_URL: 'https://dementia-backend-gamma.vercel.app/api/auth',
-  API_URL: 'https://dementia-backend-gamma.vercel.app/api'
+  BASE_URL: 'https://cognizen-x-backend.vercel.app',
+  AUTH_URL: 'https://cognizen-x-backend.vercel.app/api/auth',
+  API_URL: 'https://cognizen-x-backend.vercel.app/api'
 };
 
 // Export current URLs
@@ -17,7 +17,7 @@ export const {
 
 // Environment indicator
 export const ENV_INFO = {
-  isLocal: false,
+  isLocal: false, // Production environment
   environment: 'PRODUCTION',
-  backend: 'dementia-backend-gamma.vercel.app'
+  backend: 'cognizen-x-backend.vercel.app'
 };

@@ -1,4 +1,4 @@
-package com.basicapp
+package com.cognizenx
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
