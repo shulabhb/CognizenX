@@ -7,11 +7,11 @@ import {
   Animated,
   Dimensions,
   StatusBar,
-  SafeAreaView,
   TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Menu from './Menu';
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 const { width, height } = Dimensions.get('window');
 
@@ -20,6 +20,7 @@ const MENU_ICON = '≡';
 
 const GamesScreen = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(true); // You can add login check logic here
   
@@ -115,7 +116,10 @@ const GamesScreen = () => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, {
+      paddingTop: insets.top,
+      paddingBottom: insets.bottom,
+    }]}>
       <StatusBar backgroundColor="#F5F3FF" barStyle="dark-content" />
       
       {/* Main Content */}
@@ -193,8 +197,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
     backgroundColor: "#F5F3FF",
   },
   headerTitle: {

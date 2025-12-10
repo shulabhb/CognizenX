@@ -10,7 +10,6 @@ import {
   StatusBar,
   Dimensions,
   ActivityIndicator,
-  SafeAreaView,
   TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -18,6 +17,7 @@ import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Menu from './Menu'; // Import the Menu component
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 
 // Switch to local backend for testing (change to false for production)
 const USE_LOCAL_BACKEND = false;
@@ -45,6 +45,7 @@ const categoryEmojis = {
 
 const CategoriesScreen = () => {
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [scaleValue] = useState(new Animated.Value(1));
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -553,7 +554,10 @@ const CategoriesScreen = () => {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, {
+      paddingTop: insets.top,
+      paddingBottom: insets.bottom,
+    }]}>
       <StatusBar backgroundColor="#F5F3FF" barStyle="dark-content" />
       
       {/* Success Notification */}
@@ -690,8 +694,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
     backgroundColor: "#F5F3FF",
   },
   headerTitle: {
