@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, SafeAreaView, StatusBar, ScrollView } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 // Switch to local backend for testing (change to false for production)
 const USE_LOCAL_BACKEND = false;
@@ -14,6 +15,7 @@ const AnswerScreen = ({ route, navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState('');
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (questions[currentIndex] && selectedAnswers[currentIndex]) {
@@ -137,48 +139,71 @@ const AnswerScreen = ({ route, navigation }) => {
       <View style={styles.container}>
         {questions[currentIndex] ? (
           <>
-            <View style={styles.questionCard}>
-              <Text style={styles.questionCounter}>Question {currentIndex + 1} of {questions.length}</Text>
-              <Text style={styles.questionTitle}>Question:</Text>
-              <Text style={styles.questionText}>{questions[currentIndex].question}</Text>
-              
-              <View style={styles.answerSection}>
-                <View style={styles.correctAnswerContainer}>
-                  <Text style={styles.answerLabel}>Correct Answer:</Text>
-                  <Text style={styles.correctAnswerText}>
-                    {questions[currentIndex].correctAnswer}
-                  </Text>
-                </View>
-                
-                <View style={[styles.userAnswerContainer, isCorrect ? styles.correctBg : styles.incorrectBg]}>
-                  <Text style={styles.answerLabel}>Your Answer:</Text>
-                  <Text style={[styles.userAnswerText, isCorrect ? styles.correctText : styles.incorrectText]}>
-                    {selectedAnswers[currentIndex]?.answer || "No answer provided"}
-                  </Text>
-                </View>
+            <ScrollView
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+            >
+              <View style={styles.questionCard}>
+                <Text style={styles.questionCounter}>
+                  Question {currentIndex + 1} of {questions.length}
+                </Text>
+                <Text style={styles.questionTitle}>Question:</Text>
+                <Text style={styles.questionText}>
+                  {questions[currentIndex].question}
+                </Text>
 
-                {loading ? (
-                  <View style={styles.loaderContainer}>
-                    <ActivityIndicator size="small" color="#A78BFA" />
-                    <Text style={styles.loaderText}>Loading explanation...</Text>
+                <View style={styles.answerSection}>
+                  <View style={styles.correctAnswerContainer}>
+                    <Text style={styles.answerLabel}>Correct Answer:</Text>
+                    <Text style={styles.correctAnswerText}>
+                      {questions[currentIndex].correctAnswer}
+                    </Text>
                   </View>
-                ) : (
-                  <View style={styles.descriptionContainer}>
-                    <Text style={styles.descriptionLabel}>Explanation:</Text>
-                    <Text style={styles.descriptionText}>{description}</Text>
+
+                  <View
+                    style={[
+                      styles.userAnswerContainer,
+                      isCorrect ? styles.correctBg : styles.incorrectBg,
+                    ]}
+                  >
+                    <Text style={styles.answerLabel}>Your Answer:</Text>
+                    <Text
+                      style={[
+                        styles.userAnswerText,
+                        isCorrect ? styles.correctText : styles.incorrectText,
+                      ]}
+                    >
+                      {selectedAnswers[currentIndex]?.answer || 'No answer provided'}
+                    </Text>
                   </View>
-                )}
+
+                  {loading ? (
+                    <View style={styles.loaderContainer}>
+                      <ActivityIndicator size="small" color="#A78BFA" />
+                      <Text style={styles.loaderText}>Loading explanation...</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.descriptionContainer}>
+                      <Text style={styles.descriptionLabel}>Explanation:</Text>
+                      <Text style={styles.descriptionText}>{description}</Text>
+                    </View>
+                  )}
+                </View>
               </View>
-            </View>
+            </ScrollView>
 
-            <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
+            <TouchableOpacity style={[styles.nextButton, { marginBottom: insets.bottom }]} onPress={handleNext}>
               <Text style={styles.nextButtonText}>
-                {currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
+                {currentIndex < questions.length - 1
+                  ? 'Next Question'
+                  : 'Finish Quiz'}
               </Text>
             </TouchableOpacity>
           </>
         ) : (
-          <Text style={styles.noQuestionsText}>No questions available.</Text>
+          <View style={styles.emptyState}>
+            <Text style={styles.noQuestionsText}>No questions available.</Text>
+          </View>
         )}
       </View>
     </SafeAreaView>
@@ -226,6 +251,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#f7f7f7',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  scrollContent: {
+    paddingBottom: 24, 
   },
   questionCard: {
     backgroundColor: '#ffffff',
