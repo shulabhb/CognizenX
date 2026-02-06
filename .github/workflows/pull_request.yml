@@ -64,17 +64,17 @@ jobs:
         uses: actions/cache@v4
         with:
           path: |
-            ios/Pods
             ~/Library/Caches/CocoaPods
-          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock', 'package-lock.json') }}
+            ~/.cocoapods
+          key: ${{ runner.os }}-pods-${{ hashFiles('ios/Podfile.lock') }}
           restore-keys: |
             ${{ runner.os }}-pods-
 
       - name: Install CocoaPods dependencies
         working-directory: ios
         run: |
-          rm -rf Pods/Local\ Podspecs
-          pod install --repo-update
+          rm -rf Pods
+          pod install
 
       - name: Build iOS app
         working-directory: ios
