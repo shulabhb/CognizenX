@@ -100,14 +100,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
           {!isLoggedIn && (
             <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Login"); closeMenu(); }}>
               <Text style={styles.menuIcon}>🔑</Text>
-              <Text style={styles.menuText}>Log In</Text>
-            </TouchableOpacity>
-          )}
-          
-          {!isLoggedIn && (
-            <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("SignUp"); closeMenu(); }}>
-              <Text style={styles.menuIcon}>📝</Text>
-              <Text style={styles.menuText}>Sign Up</Text>
+              <Text style={styles.menuText}>Log In / Sign Up</Text>
             </TouchableOpacity>
           )}
           

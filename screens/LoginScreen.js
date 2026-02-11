@@ -14,6 +14,7 @@ import {
   SafeAreaView,
   Animated,
   Dimensions,
+  ScrollView
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
@@ -158,7 +159,8 @@ const LoginScreen = ({ navigation }) => {
             <Text style={styles.backButtonText}>{BACK_ICON}</Text>
           </TouchableOpacity>
 
-          <Animated.View style={[
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
+            <Animated.View style={[
             styles.container,
             { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
           ]}>
@@ -245,6 +247,9 @@ const LoginScreen = ({ navigation }) => {
               </Text>
             </View>
           </Animated.View>
+
+          </ScrollView>
+          
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     </SafeAreaView>

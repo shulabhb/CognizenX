@@ -501,7 +501,7 @@ const HomeScreen = ({ navigation }) => {
               style={styles.viewAllButton}
               onPress={handleQuizAll}
             >
-              <Text style={styles.viewAllText}>Quiz All</Text>
+              <Text style={styles.viewAllText}>Random Quiz</Text>
             </TouchableOpacity>
           </View>
           
