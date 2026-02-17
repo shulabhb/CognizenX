@@ -19,6 +19,9 @@ import {
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
+import { colors, shadow } from '../styles/theme';
+import { ui } from '../styles/ui';
+
 // Switch to local backend for testing (change to false for production)
 const USE_LOCAL_BACKEND = false;
 const API_BASE_URL = USE_LOCAL_BACKEND 
@@ -162,7 +165,7 @@ const SignupScreen = ({ navigation }) => {
             <Text style={styles.backButtonText}>{BACK_ICON}</Text>
           </TouchableOpacity>
           
-          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
    <Animated.View style={[
             styles.container,
             { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
@@ -173,7 +176,7 @@ const SignupScreen = ({ navigation }) => {
               <Text style={styles.description}>Join us to begin your memory care journey</Text>
             </View>
 
-            <View style={styles.formContainer}>
+            <View style={ui.formCard}>
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Full Name</Text>
                 <View style={styles.inputWrapper}>
@@ -181,7 +184,7 @@ const SignupScreen = ({ navigation }) => {
                     ref={nameRef}
                     style={styles.input}
                     placeholder="Enter your full name"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={colors.gray400}
                     value={name}
                     onChangeText={setName}
                     returnKeyType="next"
@@ -200,7 +203,7 @@ const SignupScreen = ({ navigation }) => {
                     ref={emailRef}
                     style={styles.input}
                     placeholder="Enter your email"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={colors.gray400}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -221,7 +224,7 @@ const SignupScreen = ({ navigation }) => {
                     ref={passwordRef}
                     style={styles.input}
                     placeholder="Create a password"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={colors.gray400}
                     value={password}
                     onChangeText={setPassword}
                     secureTextEntry
@@ -232,7 +235,7 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               {loading ? (
-                <ActivityIndicator size="large" color="#A78BFA" style={styles.loader} />
+                <ActivityIndicator size="large" color={colors.brand} style={styles.loader} />
               ) : (
                 <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
                   <TouchableOpacity 
@@ -242,7 +245,7 @@ const SignupScreen = ({ navigation }) => {
                     onPressIn={handlePressIn}
                     onPressOut={handlePressOut}
                   >
-                    <View style={styles.buttonGradient}>
+                    <View style={ui.brandFill}>
                       <Text style={styles.signupButtonText}>Create Account</Text>
                     </View>
                   </TouchableOpacity>
@@ -273,7 +276,7 @@ const SignupScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F5F3FF",
+    backgroundColor: colors.backgroundTint,
   },
   backgroundGradient: {
     position: 'absolute',
@@ -281,7 +284,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '100%',
-    backgroundColor: '#F5F3FF',
+    backgroundColor: colors.backgroundTint,
     opacity: 0.8,
   },
   keyboardAvoidingView: {
@@ -290,6 +293,9 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 24,
+  },
+  scrollContent: {
+    flexGrow: 1,
   },
   backButton: {
     position: 'absolute',
@@ -300,7 +306,7 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     fontSize: 28,
-    color: "#4B5563",
+    color: colors.textSecondary,
   },
   headerContainer: {
     marginTop: 60,
@@ -310,31 +316,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: "700",
-    color: "#4B5563",
+    color: colors.textSecondary,
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 24,
     fontWeight: "600",
-    color: "#6B7280",
+    color: colors.textMuted,
     marginBottom: 8,
     textAlign: "center",
   },
   description: {
     fontSize: 16,
-    color: "#9CA3AF",
+    color: colors.gray400,
     textAlign: "center",
-  },
-  formContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: "#A78BFA",
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
   },
   inputContainer: {
     marginBottom: 20,
@@ -342,42 +338,31 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#4B5563",
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   inputWrapper: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FAFAFA",
+    borderColor: colors.gray200,
+    backgroundColor: colors.gray50,
     overflow: 'hidden',
   },
   input: {
     height: 56,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: "#4B5563",
+    color: colors.textSecondary,
   },
   signupButton: {
     height: 56,
     borderRadius: 14,
     marginTop: 12,
     overflow: 'hidden',
-    shadowColor: "#A78BFA",
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  buttonGradient: {
-    height: '100%',
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#A78BFA',
+    ...shadow({ color: colors.brand, offsetHeight: 4, opacity: 0.3, radius: 10, elevation: 6 }),
   },
   signupButtonText: {
-    color: "#FFFFFF",
+    color: colors.white,
     fontSize: 18,
     fontWeight: "600",
   },
@@ -387,10 +372,10 @@ const styles = StyleSheet.create({
   },
   loginPrompt: {
     fontSize: 16,
-    color: "#6B7280",
+    color: colors.textMuted,
   },
   loginLink: {
-    color: "#A78BFA",
+    color: colors.brand,
     fontWeight: "600",
   },
   loader: {

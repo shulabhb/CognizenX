@@ -11,6 +11,8 @@ import {
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { colors, radii, shadow, spacing } from '../styles/theme';
+import { ui } from '../styles/ui';
 
 const { width, height } = Dimensions.get('window');
 
@@ -141,15 +143,15 @@ const MemoryMatchGame = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#3B82F6" barStyle="light-content" />
+      <StatusBar backgroundColor={colors.blue500} barStyle="light-content" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+      <View style={[ui.headerRow, styles.header]}>
+        <TouchableOpacity onPress={handleBackPress} style={ui.iconButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Memory Match</Text>
-        <View style={styles.emptyBox} />
+        <Text style={ui.headerTitleLight}>Memory Match</Text>
+        <View style={ui.headerSpacer} />
       </View>
 
       {/* Game Stats */}
@@ -178,8 +180,8 @@ const MemoryMatchGame = () => {
               Find matching pairs of animal cards. Tap cards to flip them and test your memory!
               Match all 6 pairs to win!
             </Text>
-            <TouchableOpacity style={styles.startButton} onPress={initializeGame}>
-              <Text style={styles.startButtonText}>Start Game</Text>
+            <TouchableOpacity style={[ui.buttonPillLg, styles.startButton]} onPress={initializeGame}>
+              <Text style={ui.buttonPillLgText}>Start Game</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -207,58 +209,41 @@ const MemoryMatchGame = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#3B82F6",
+    backgroundColor: colors.blue500,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-    backgroundColor: "#3B82F6",
-  },
-  backButton: {
-    padding: 8,
+    backgroundColor: colors.blue500,
   },
   backIcon: {
     fontSize: 24,
-    color: "#FFFFFF",
+    color: colors.white,
     fontWeight: "600",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  emptyBox: {
-    width: 40,
   },
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingVertical: 15,
-    backgroundColor: "#2563EB",
+    backgroundColor: colors.blue600,
   },
   statItem: {
     alignItems: "center",
   },
   statLabel: {
     fontSize: 12,
-    color: "#DBEAFE",
+    color: colors.blue100,
     fontWeight: "500",
   },
   statValue: {
     fontSize: 18,
-    color: "#FFFFFF",
+    color: colors.white,
     fontWeight: "700",
     marginTop: 2,
   },
   gameContainer: {
     flex: 1,
-    backgroundColor: "#F0F9FF",
-    padding: 20,
+    backgroundColor: colors.blue50,
+    padding: spacing.xl,
   },
   startScreen: {
     flex: 1,
@@ -272,32 +257,19 @@ const styles = StyleSheet.create({
   gameTitle: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#1E40AF",
+    color: colors.blue800,
     marginBottom: 16,
   },
   gameDescription: {
     fontSize: 16,
-    color: "#64748B",
+    color: colors.slate500,
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 30,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
   },
   startButton: {
-    backgroundColor: "#3B82F6",
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 25,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  startButtonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "600",
+    backgroundColor: colors.blue500,
   },
   gameBoard: {
     flex: 1,
@@ -321,12 +293,8 @@ const styles = StyleSheet.create({
   },
   cardInner: {
     flex: 1,
-    borderRadius: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderRadius: radii.md,
+    ...shadow({ offsetHeight: 2, opacity: 0.1, radius: 4, elevation: 3 }),
     position: "relative",
   },
   cardFront: {
@@ -335,12 +303,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 12,
+    backgroundColor: colors.surface,
+    borderRadius: radii.md,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#E5E7EB",
+    borderColor: colors.gray200,
   },
   cardBack: {
     position: "absolute",
@@ -348,12 +316,12 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: "#FEF3C7",
-    borderRadius: 12,
+    backgroundColor: colors.warningBg,
+    borderRadius: radii.md,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#F59E0B",
+    borderColor: colors.warning,
   },
   cardBackSymbol: {
     fontSize: 24,
@@ -369,15 +337,15 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   instructionsContainer: {
-    backgroundColor: "#DBEAFE",
-    padding: 12,
-    marginHorizontal: 20,
-    marginBottom: 20,
-    borderRadius: 8,
+    backgroundColor: colors.blue100,
+    padding: spacing.md,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.xl,
+    borderRadius: radii.sm,
   },
   instructionsText: {
     fontSize: 14,
-    color: "#1E40AF",
+    color: colors.blue800,
     textAlign: "center",
     fontWeight: "500",
   },

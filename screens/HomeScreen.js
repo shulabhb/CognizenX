@@ -1,3 +1,5 @@
+import { colors, shadow, spacing } from '../styles/theme';
+import { ui } from '../styles/ui';
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
   View,
@@ -380,7 +382,7 @@ const HomeScreen = ({ navigation }) => {
       const emoji = categoryEmojis[categoryLower] || categoryEmojis.default;
       
       return (
-        <View key={uniqueKey} style={styles.categorySection}>
+        <View key={uniqueKey} style={ui.sectionCard}>
           <View style={styles.categoryHeader}>
             <View style={styles.categoryIconContainer}>
               <Text style={styles.categoryEmoji}>{emoji}</Text>
@@ -467,30 +469,30 @@ const HomeScreen = ({ navigation }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.container}>
+      <SafeAreaView style={ui.screenTint}>
         <View style={styles.loaderContainer}>
-          <ActivityIndicator size="large" color="#A78BFA" />
+          <ActivityIndicator size="large" color={colors.brand} />
         </View>
       </SafeAreaView>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, {
+    <SafeAreaView style={[ui.screenTint, {
           paddingTop: insets.top,
           paddingBottom: insets.bottom,
         }]}>
-      <StatusBar backgroundColor="#F5F3FF" barStyle="dark-content" />
+      <StatusBar backgroundColor={colors.backgroundTint} barStyle="dark-content" />
       
       {/* Main Content */}
-      <Animated.View style={[styles.mainContent, { opacity: screenOpacity }]}>
+      <Animated.View style={[ui.screenTint, { opacity: screenOpacity }]}>
         {/* Header with Menu Icon */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+        <View style={[ui.headerRow, styles.header]}>
+          <TouchableOpacity onPress={toggleMenu} style={ui.iconButton}>
             <Text style={styles.menuIconText}>{MENU_ICON}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>CognizenX</Text>
-          <View style={styles.emptyBox} />
+          <Text style={ui.headerTitleLg}>CognizenX</Text>
+          <View style={ui.headerSpacer} />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
@@ -533,9 +535,9 @@ const HomeScreen = ({ navigation }) => {
         onRequestClose={() => setLoginPromptVisible(false)}
       >
         <TouchableWithoutFeedback onPress={() => setLoginPromptVisible(false)}>
-          <View style={styles.modalOverlay}>
+          <View style={ui.modalOverlay}>
             <TouchableWithoutFeedback>
-              <View style={styles.modalContent}>
+              <View style={ui.modalContent}>
                 <Text style={styles.modalTitle}>Login Required</Text>
                 <Text style={styles.modalText}>
                   You need to be logged in to access this feature.
@@ -592,65 +594,42 @@ const HomeScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F5F3FF",
-  },
   loaderContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-  mainContent: {
-    flex: 1,
-    backgroundColor: "#F5F3FF",
-  },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    backgroundColor: "#F5F3FF",
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#4B5563",
-  },
-  menuButton: {
-    padding: 8,
+    backgroundColor: colors.backgroundTint,
   },
   menuIconText: {
     fontSize: 26,
-    color: "#4B5563",
-  },
-  emptyBox: {
-    width: 40,
+    color: colors.textSecondary,
   },
   scrollContent: {
-    paddingHorizontal: 16,
+    paddingHorizontal: spacing.lg,
     paddingBottom: 30,
   },
   sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginTop: 20,
-    marginBottom: 15,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: spacing.lg,
+    marginBottom: spacing.lg,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#4B5563",
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.textSecondary,
   },
   viewAllButton: {
-    backgroundColor: "#A78BFA",
+    backgroundColor: colors.brand,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
   viewAllText: {
-    color: "#FFFFFF",
+    color: colors.white,
     fontSize: 14,
     fontWeight: "500",
   },
@@ -666,33 +645,29 @@ const styles = StyleSheet.create({
   },
   emptyStateText: {
     fontSize: 16,
-    color: "#6B7280",
+    color: colors.textMuted,
     textAlign: "center",
     lineHeight: 24,
   },
   addMoreButton: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 24,
-    shadowColor: "#A78BFA",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 2,
+    ...shadow({ color: colors.brand, offsetHeight: 4, opacity: 0.1, radius: 8, elevation: 2 }),
   },
   addMoreButtonIcon: {
     fontSize: 20,
     marginRight: 10,
-    color: "#A78BFA",
+    color: colors.brand,
   },
   addMoreText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#A78BFA",
+    color: colors.brand,
   },
   overlay: {
     position: "absolute",
@@ -703,18 +678,6 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.4)",
     zIndex: 999,
   },
-  // New styles for category sections
-  categorySection: {
-    marginBottom: 24,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    shadowColor: "#A78BFA",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-  },
   categoryHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -724,7 +687,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: "#F5F3FF",
+    backgroundColor: colors.backgroundTint,
     justifyContent: "center",
     alignItems: "center",
     marginRight: 16,
@@ -735,30 +698,11 @@ const styles = StyleSheet.create({
   categoryTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#4B5563",
+    color: colors.textSecondary,
     textTransform: "capitalize",
   },
-  subdomainsContainer: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    marginHorizontal: -4,
-  },
-  subdomainCard: {
-    backgroundColor: "#A78BFA",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 8,
-    margin: 4,
-    minWidth: "45%",
-    alignItems: "center",
-  },
-  subdomainText: {
-    color: "#FFFFFF",
-    fontWeight: "500",
-    fontSize: 14,
-  },
   categoryButton: {
-    backgroundColor: "#A78BFA",
+    backgroundColor: colors.brand,
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
@@ -766,7 +710,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   categoryButtonText: {
-    color: "#FFFFFF",
+    color: colors.white,
     fontSize: 14,
     fontWeight: "500",
   },
@@ -776,7 +720,7 @@ const styles = StyleSheet.create({
   subdomainLabel: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#4B5563",
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   subdomainList: {
@@ -785,65 +729,39 @@ const styles = StyleSheet.create({
     marginHorizontal: -4,
   },
   subdomainItem: {
-    backgroundColor: "#F3E8FF",
+    backgroundColor: colors.brandTint,
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 12,
     margin: 6,
     minWidth: "45%",
     borderWidth: 1,
-    borderColor: "#D8B4FE",
-    shadowColor: "#9061F9",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
+    borderColor: colors.brandBorder,
+    ...shadow({ color: colors.brandShadow, offsetHeight: 2, opacity: 0.2, radius: 3, elevation: 2 }),
   },
   subdomainText: {
-    color: "#7C3AED",
+    color: '#7C3AED',
     fontSize: 14,
     fontWeight: "600",
     textAlign: "center",
   },
   noSubdomainsText: {
-    color: "#6B7280",
+    color: colors.textMuted,
     fontSize: 14,
     fontWeight: "500",
     fontStyle: "italic",
     textAlign: "center",
     marginVertical: 8,
   },
-  // Modal styles
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalContent: {
-    backgroundColor: "white",
-    borderRadius: 16,
-    padding: 20,
-    width: "80%",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-  },
   modalTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#4B5563",
+    color: colors.textSecondary,
     marginBottom: 12,
   },
   modalText: {
     fontSize: 16,
-    color: "#6B7280",
+    color: colors.textMuted,
     textAlign: "center",
     marginBottom: 20,
   },
@@ -861,20 +779,20 @@ const styles = StyleSheet.create({
     marginHorizontal: 6,
   },
   loginButton: {
-    backgroundColor: "#A78BFA",
+    backgroundColor: colors.brand,
   },
   signupButton: {
-    backgroundColor: "#F3E8FF",
+    backgroundColor: colors.brandTint,
     borderWidth: 1,
-    borderColor: "#A78BFA",
+    borderColor: colors.brand,
   },
   loginButtonText: {
-    color: "white",
+    color: colors.white,
     fontWeight: "600",
     fontSize: 16,
   },
   signupButtonText: {
-    color: "#A78BFA",
+    color: colors.brand,
     fontWeight: "600",
     fontSize: 16,
   },
@@ -883,6 +801,7 @@ const styles = StyleSheet.create({
   },
   cancelButtonText: {
     color: "#6B7280",
+    color: colors.textMuted,
     fontSize: 14,
   },
 });

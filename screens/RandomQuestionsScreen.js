@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } fr
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { colors, spacing } from '../styles/theme';
+import { ui } from '../styles/ui';
+
 // Switch to local backend for testing (change to false for production)
 const USE_LOCAL_BACKEND = false;
 const API_BASE_URL = USE_LOCAL_BACKEND 
@@ -199,13 +202,13 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
   if (loading) {
     return (
       <View style={styles.loader}>
-        <ActivityIndicator size="large" color="#0000ff" />
+        <ActivityIndicator size="large" color={colors.bluePure} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[ui.screen, styles.container]}>
       {questions.length > 0 ? (
         <View>
           <Text style={styles.questionText}>
@@ -230,9 +233,8 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    padding: 16,
-    backgroundColor: '#f9f9f9',
+    padding: spacing.lg,
+    backgroundColor: colors.backgroundLight,
     justifyContent: 'center',
   },
   loader: {
@@ -248,7 +250,7 @@ const styles = StyleSheet.create({
   answerButton: {
     padding: 15,
     borderRadius: 10,
-    backgroundColor: '#e0e0e0',
+    backgroundColor: colors.neutral200,
     marginVertical: 5,
   },
   answerText: {

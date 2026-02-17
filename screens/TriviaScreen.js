@@ -9,12 +9,16 @@ import {
   Dimensions,
   StatusBar,
   Animated,
-  TouchableWithoutFeedback
+  TouchableWithoutFeedback,
+  Alert
 } from 'react-native';
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Menu from './Menu';
+
+import { colors, spacing } from '../styles/theme';
+import { ui } from '../styles/ui';
 
 const { width, height } = Dimensions.get('window');
 const MENU_ICON = '≡';
@@ -189,9 +193,9 @@ const TriviaScreen = ({ route }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={ui.screen}>
         <View style={styles.loader}>
-          <ActivityIndicator size="large" color="#A78BFA" />
+          <ActivityIndicator size="large" color={colors.brand} />
           <Text style={styles.loadingText}>Loading Questions...</Text>
         </View>
       </SafeAreaView>
@@ -199,8 +203,8 @@ const TriviaScreen = ({ route }) => {
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f7f7f7" />
+    <SafeAreaView style={ui.screen}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
       
       {/* Menu */}
       <Animated.View
@@ -224,11 +228,11 @@ const TriviaScreen = ({ route }) => {
         ]}
       >
         <TouchableWithoutFeedback onPress={() => menuOpen && toggleMenu()}>
-          <View style={styles.header}>
+          <View style={ui.header}>
             <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
               <Text style={styles.menuIcon}>{menuOpen ? CLOSE_ICON : MENU_ICON}</Text>
             </TouchableOpacity>
-            <Text style={styles.screenTitle}>{category}: {subDomain}</Text>
+            <Text style={ui.screenTitle}>{category}: {subDomain}</Text>
             <View style={styles.progressBar}>
               <View 
                 style={[
@@ -250,7 +254,7 @@ const TriviaScreen = ({ route }) => {
               }
             ]}
           >
-            <View style={styles.questionCard}>
+            <View style={ui.card}>
               <Text style={styles.questionCounter}>Question {currentQuestionIndex + 1} of {questions.length}</Text>
               <Text style={styles.questionText}>{questions[currentQuestionIndex].question}</Text>
               
@@ -290,37 +294,20 @@ const TriviaScreen = ({ route }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f7f7f7',
-  },
   container: {
     flex: 1,
-    backgroundColor: '#f7f7f7',
+    backgroundColor: colors.background,
   },
   loader: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#ffffff',
+    backgroundColor: colors.surface,
   },
   loadingText: {
     marginTop: 15,
     fontSize: 16,
-    color: '#666',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eeeeee',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    color: colors.textHint,
   },
   menuButton: {
     padding: 5,
@@ -329,48 +316,31 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
   },
-  screenTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginVertical: 10,
-    textTransform: 'capitalize',
-  },
   progressBar: {
     height: 6,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.gray200,
     borderRadius: 3,
     marginTop: 5,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#A78BFA',
+    backgroundColor: colors.brand,
     borderRadius: 3,
   },
   questionContainer: {
     flex: 1,
-    padding: 20,
-  },
-  questionCard: {
-    backgroundColor: 'white',
-    borderRadius: 15,
-    padding: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    padding: spacing.xl,
   },
   questionCounter: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textMuted,
     marginBottom: 10,
   },
   questionText: {
     fontSize: 20,
     fontWeight: 'bold',
     marginBottom: 25,
-    color: '#1F2937',
+    color: colors.textPrimary,
     lineHeight: 28,
   },
   optionsContainer: {
@@ -381,20 +351,20 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 15,
     borderRadius: 12,
-    backgroundColor: '#F3F4F6',
+    backgroundColor: colors.gray100,
     marginVertical: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
+    borderColor: colors.gray200,
   },
   selectedAnswerButton: {
-    backgroundColor: '#EDE9FE',
-    borderColor: '#A78BFA',
+    backgroundColor: colors.brandSelectedBg,
+    borderColor: colors.brand,
   },
   optionLabelContainer: {
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.gray200,
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
@@ -402,15 +372,15 @@ const styles = StyleSheet.create({
   optionLabel: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#4B5563',
+    color: colors.textSecondary,
   },
   answerText: {
     fontSize: 16,
-    color: '#4B5563',
+    color: colors.textSecondary,
     flex: 1,
   },
   selectedAnswerText: {
-    color: '#6D28D9',
+    color: colors.brandSelectedText,
     fontWeight: '500',
   },
   noQuestionsContainer: {
@@ -421,7 +391,7 @@ const styles = StyleSheet.create({
   },
   noQuestionsText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textMuted,
     textAlign: 'center',
   },
 });

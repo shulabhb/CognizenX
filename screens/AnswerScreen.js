@@ -3,6 +3,9 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, Saf
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
+import { colors, radii, spacing } from '../styles/theme';
+import { ui } from '../styles/ui';
+
 // Switch to local backend for testing (change to false for production)
 const USE_LOCAL_BACKEND = false;
 const API_BASE_URL = USE_LOCAL_BACKEND 
@@ -120,10 +123,10 @@ const AnswerScreen = ({ route, navigation }) => {
                    questions[currentIndex].correctAnswer === selectedAnswers[currentIndex].answer;
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <StatusBar barStyle="dark-content" backgroundColor="#f7f7f7" />
-      <View style={styles.header}>
-        <Text style={styles.screenTitle}>Results</Text>
+    <SafeAreaView style={ui.screen}>
+      <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
+      <View style={ui.header}>
+        <Text style={ui.screenTitle}>Results</Text>
         <View style={styles.progressBar}>
           <View 
             style={[
@@ -137,7 +140,7 @@ const AnswerScreen = ({ route, navigation }) => {
       <View style={styles.container}>
         {questions[currentIndex] ? (
           <>
-            <View style={styles.questionCard}>
+            <View style={ui.card}>
               <Text style={styles.questionCounter}>Question {currentIndex + 1} of {questions.length}</Text>
               <Text style={styles.questionTitle}>Question:</Text>
               <Text style={styles.questionText}>{questions[currentIndex].question}</Text>
@@ -159,7 +162,7 @@ const AnswerScreen = ({ route, navigation }) => {
 
                 {loading ? (
                   <View style={styles.loaderContainer}>
-                    <ActivityIndicator size="small" color="#A78BFA" />
+                    <ActivityIndicator size="small" color={colors.brand} />
                     <Text style={styles.loaderText}>Loading explanation...</Text>
                   </View>
                 ) : (
@@ -171,8 +174,8 @@ const AnswerScreen = ({ route, navigation }) => {
               </View>
             </View>
 
-            <TouchableOpacity style={styles.nextButton} onPress={handleNext}>
-              <Text style={styles.nextButtonText}>
+            <TouchableOpacity style={[ui.buttonPrimary, styles.nextButton]} onPress={handleNext}>
+              <Text style={ui.buttonPrimaryText}>
                 {currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
               </Text>
             </TouchableOpacity>
@@ -186,74 +189,40 @@ const AnswerScreen = ({ route, navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: '#f7f7f7',
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-    backgroundColor: '#ffffff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#eeeeee',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  screenTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginVertical: 10,
-  },
   progressBar: {
     height: 6,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: colors.gray200,
     borderRadius: 3,
     marginTop: 5,
   },
   progressFill: {
     height: '100%',
-    backgroundColor: '#A78BFA',
+    backgroundColor: colors.brand,
     borderRadius: 3,
   },
   container: {
     flex: 1,
-    padding: 16,
-    backgroundColor: '#f7f7f7',
+    padding: spacing.lg,
+    backgroundColor: colors.background,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  questionCard: {
-    backgroundColor: '#ffffff',
-    borderRadius: 15,
-    padding: 20,
-    width: '100%',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
   questionCounter: {
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textMuted,
     marginBottom: 10,
   },
   questionTitle: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#4B5563',
+    color: colors.textSecondary,
     marginBottom: 5,
   },
   questionText: {
     fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 20,
-    color: '#1F2937',
+    color: colors.textPrimary,
     textAlign: 'center',
   },
   answerSection: {
@@ -263,33 +232,33 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 4,
-    color: '#4B5563',
+    color: colors.textSecondary,
   },
   correctAnswerContainer: {
     marginBottom: 12,
     padding: 12,
-    borderRadius: 8,
-    backgroundColor: '#F0FDF4',
+    borderRadius: radii.sm,
+    backgroundColor: colors.successBg,
     borderWidth: 1,
-    borderColor: '#86EFAC',
+    borderColor: colors.successBorder,
   },
   userAnswerContainer: {
     marginBottom: 12,
     padding: 12,
-    borderRadius: 8,
+    borderRadius: radii.sm,
     borderWidth: 1,
   },
   correctBg: {
-    backgroundColor: '#F0FDF4',
-    borderColor: '#86EFAC',
+    backgroundColor: colors.successBg,
+    borderColor: colors.successBorder,
   },
   incorrectBg: {
-    backgroundColor: '#FEF2F2',
-    borderColor: '#FCA5A5',
+    backgroundColor: colors.dangerBg,
+    borderColor: colors.dangerBorder,
   },
   correctAnswerText: {
     fontSize: 16,
-    color: '#10B981',
+    color: colors.success,
     fontWeight: '500',
   },
   userAnswerText: {
@@ -297,10 +266,10 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   },
   correctText: {
-    color: '#10B981',
+    color: colors.success,
   },
   incorrectText: {
-    color: '#EF4444',
+    color: colors.danger,
   },
   loaderContainer: {
     alignItems: 'center',
@@ -309,48 +278,32 @@ const styles = StyleSheet.create({
   loaderText: {
     marginTop: 10,
     fontSize: 14,
-    color: '#6B7280',
+    color: colors.textMuted,
   },
   descriptionContainer: {
     marginTop: 12,
     padding: 12,
-    backgroundColor: '#F3F4F6',
-    borderRadius: 8,
+    backgroundColor: colors.gray100,
+    borderRadius: radii.sm,
   },
   descriptionLabel: {
     fontSize: 14,
     fontWeight: '600',
-    marginBottom: 8,
-    color: '#4B5563',
+    marginBottom: 6,
+    color: colors.textSecondary,
   },
   descriptionText: {
-    fontSize: 14,
-    color: '#4B5563',
-    lineHeight: 20,
-    textAlign: 'left',
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textSecondary,
   },
   nextButton: {
-    backgroundColor: '#A78BFA',
-    paddingVertical: 12,
-    paddingHorizontal: 24,
-    borderRadius: 12,
     marginTop: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
     width: '100%',
-    alignItems: 'center',
-  },
-  nextButtonText: {
-    color: '#FFFFFF',
-    fontSize: 16,
-    fontWeight: '600',
   },
   noQuestionsText: {
     fontSize: 16,
-    color: '#6B7280',
+    color: colors.textMuted,
     textAlign: 'center',
   },
 });

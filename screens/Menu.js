@@ -14,6 +14,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 
+import { colors, shadow, spacing } from '../styles/theme';
+import { ui } from '../styles/ui';
+
 // Switch to local backend for testing (change to false for production)
 const USE_LOCAL_BACKEND = false;
 const API_BASE_URL = USE_LOCAL_BACKEND 
@@ -76,9 +79,9 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
       {/* Full Screen Menu Container */}
       <Animated.View style={[styles.menuContainer, { transform: [{ translateX: menuAnimation }] }]}>
         {/* Header */}
-        <View style={styles.header}>
+        <View style={[ui.headerRow, styles.header]}>
           <Text style={styles.title}>Menu</Text>
-          <TouchableOpacity onPress={closeMenu} style={styles.closeButton}>
+          <TouchableOpacity onPress={closeMenu} style={[ui.iconButton, styles.closeButton]}>
             <Text style={styles.closeIcon}>✕</Text>
           </TouchableOpacity>
         </View>
@@ -156,44 +159,36 @@ const styles = StyleSheet.create({
     left: 0,
     width: width * 0.8,
     height: height,
-    backgroundColor: "#FFFFFF",
-    shadowColor: "#000",
-    shadowOffset: { width: 2, height: 0 },
-    shadowOpacity: 0.15,
-    shadowRadius: 8,
-    elevation: 8,
+    backgroundColor: colors.white,
+    ...shadow({ offsetWidth: 2, offsetHeight: 0, opacity: 0.15, radius: 8, elevation: 8 }),
     zIndex: 1000,
   },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: spacing.xxl,
     paddingTop: Platform.OS === 'ios' ? 60 : 40,
     paddingBottom: 20,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: colors.slate50,
     borderBottomWidth: 1,
-    borderBottomColor: "#E2E8F0",
+    borderBottomColor: colors.slate200,
   },
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#1E293B",
+    color: colors.slate800,
   },
   closeButton: {
-    padding: 8,
     borderRadius: 20,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.slate100,
   },
   closeIcon: {
     fontSize: 16,
-    color: "#64748B",
+    color: colors.slate500,
     fontWeight: "600",
   },
   menuItems: {
     flex: 1,
-    paddingHorizontal: 24,
-    paddingTop: 24,
+    paddingHorizontal: spacing.xxl,
+    paddingTop: spacing.xxl,
   },
   menuItem: {
     flexDirection: "row",
@@ -208,17 +203,17 @@ const styles = StyleSheet.create({
   },
   menuText: {
     fontSize: 17,
-    color: "#334155",
+    color: colors.slate700,
     fontWeight: "500",
   },
   divider: {
     height: 1,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: colors.slate200,
     marginVertical: 20,
     marginHorizontal: 0,
   },
   dangerText: {
-    color: "#DC2626",
+    color: colors.dangerDark,
     fontWeight: "600",
   },
   overlay: {
