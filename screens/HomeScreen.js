@@ -1,4 +1,4 @@
-import { colors, shadow, spacing } from '../styles/theme';
+import { colors, layout, shadow, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
@@ -12,6 +12,7 @@ import {
   Image,
   Animated,
   Dimensions,
+  useWindowDimensions,
   ScrollView,
   StatusBar,
   TouchableWithoutFeedback,
@@ -20,9 +21,9 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
-import Menu from "./Menu"; // Import the Menu component
+import Menu, { getMenuWidth } from "./Menu"; // Import the Menu component
 import { useFocusEffect } from "@react-navigation/native";
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 // Switch to local backend for testing (change to false for production)
 const USE_LOCAL_BACKEND = false;
@@ -60,7 +61,9 @@ const CLOSE_ICON = "✕";
 const PLUS_ICON = "➕";
 
 const HomeScreen = ({ navigation }) => {
-  const insets = useSafeAreaInsets();
+  const { width: screenWidth } = useWindowDimensions();
+  const menuWidth = getMenuWidth(screenWidth);
+
   const [preferences, setPreferences] = useState([]);
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -68,8 +71,14 @@ const HomeScreen = ({ navigation }) => {
   const [loginPromptVisible, setLoginPromptVisible] = useState(false);
   
   // Animation values
-  const menuAnimation = useRef(new Animated.Value(-width * 0.7)).current;
+  const menuAnimation = useRef(new Animated.Value(-menuWidth)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!menuOpen) {
+      menuAnimation.setValue(-menuWidth);
+    }
+  }, [menuWidth, menuOpen, menuAnimation]);
 
   // Process preferences into grouped format
   const processPreferences = (prefsArray) => {
@@ -307,7 +316,7 @@ const HomeScreen = ({ navigation }) => {
       // Close menu
       Animated.parallel([
         Animated.timing(menuAnimation, {
-          toValue: -width * 0.7,
+          toValue: -menuWidth,
           duration: 300,
           useNativeDriver: true,
         }),
@@ -478,10 +487,7 @@ const HomeScreen = ({ navigation }) => {
   }
 
   return (
-    <SafeAreaView style={[ui.screenTint, {
-          paddingTop: insets.top,
-          paddingBottom: insets.bottom,
-        }]}>
+    <SafeAreaView style={ui.screenTint}>
       <StatusBar backgroundColor={colors.backgroundTint} barStyle="dark-content" />
       
       {/* Main Content */}
@@ -497,7 +503,7 @@ const HomeScreen = ({ navigation }) => {
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           {/* Explore Section */}
-          <View style={styles.sectionHeader}>
+          <View style={[styles.sectionHeader, styles.contentMaxWidth]}>
             <Text style={styles.sectionTitle}>Explore</Text>
             <TouchableOpacity 
               style={styles.viewAllButton}
@@ -610,6 +616,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: 30,
   },
+  contentMaxWidth: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+  },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -630,7 +641,7 @@ const styles = StyleSheet.create({
   },
   viewAllText: {
     color: colors.white,
-    fontSize: 14,
+    fontSize: type.bodySm,
     fontWeight: "500",
   },
   emptyState: {
@@ -644,7 +655,7 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   emptyStateText: {
-    fontSize: 16,
+    fontSize: type.body,
     color: colors.textMuted,
     textAlign: "center",
     lineHeight: 24,
@@ -665,7 +676,7 @@ const styles = StyleSheet.create({
     color: colors.brand,
   },
   addMoreText: {
-    fontSize: 16,
+    fontSize: type.button,
     fontWeight: "600",
     color: colors.brand,
   },
@@ -711,14 +722,14 @@ const styles = StyleSheet.create({
   },
   categoryButtonText: {
     color: colors.white,
-    fontSize: 14,
+    fontSize: type.bodySm,
     fontWeight: "500",
   },
   subdomainContainer: {
     marginTop: 16,
   },
   subdomainLabel: {
-    fontSize: 16,
+    fontSize: type.body,
     fontWeight: "600",
     color: colors.textSecondary,
     marginBottom: 8,
@@ -741,13 +752,13 @@ const styles = StyleSheet.create({
   },
   subdomainText: {
     color: '#7C3AED',
-    fontSize: 14,
+    fontSize: type.bodySm,
     fontWeight: "600",
     textAlign: "center",
   },
   noSubdomainsText: {
     color: colors.textMuted,
-    fontSize: 14,
+    fontSize: type.bodySm,
     fontWeight: "500",
     fontStyle: "italic",
     textAlign: "center",
@@ -760,7 +771,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalText: {
-    fontSize: 16,
+    fontSize: type.body,
     color: colors.textMuted,
     textAlign: "center",
     marginBottom: 20,
@@ -789,12 +800,12 @@ const styles = StyleSheet.create({
   loginButtonText: {
     color: colors.white,
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: type.button,
   },
   signupButtonText: {
     color: colors.brand,
     fontWeight: "600",
-    fontSize: 16,
+    fontSize: type.button,
   },
   cancelButton: {
     paddingVertical: 10,
@@ -802,7 +813,7 @@ const styles = StyleSheet.create({
   cancelButtonText: {
     color: "#6B7280",
     color: colors.textMuted,
-    fontSize: 14,
+    fontSize: type.bodySm,
   },
 });
 

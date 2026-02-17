@@ -29,12 +29,10 @@ const API_BASE_URL = USE_LOCAL_BACKEND
   : `https://cognizen-x-backend.vercel.app`;  // Production backend
 const { width } = Dimensions.get("window");
 
-// Back button icon
-const BACK_ICON = "←";
-
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
@@ -154,14 +152,6 @@ const LoginScreen = ({ navigation }) => {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardAvoidingView}
         >
-          {/* Back Button */}
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.navigate("Home")}
-          >
-            <Text style={styles.backButtonText}>{BACK_ICON}</Text>
-          </TouchableOpacity>
-
           <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
             <Animated.View style={[
             styles.container,
@@ -197,18 +187,26 @@ const LoginScreen = ({ navigation }) => {
 
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Password</Text>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, styles.passwordInputWrapper]}>
                   <TextInput
                     ref={passwordRef}
-                    style={styles.input}
+                    style={[styles.input, styles.passwordInput]}
                     placeholder="Enter your password"
                     placeholderTextColor={colors.gray400}
                     value={password}
                     onChangeText={setPassword}
-                    secureTextEntry
+                    secureTextEntry={!passwordVisible}
                     returnKeyType="go"
                     onSubmitEditing={handleLogin}
                   />
+                  <TouchableOpacity
+                    onPress={() => setPasswordVisible((v) => !v)}
+                    style={styles.passwordToggle}
+                    accessibilityRole="button"
+                    accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+                  >
+                    <Text style={styles.passwordToggleText}>{passwordVisible ? 'Hide' : 'Show'}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -283,17 +281,6 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
   },
-  backButton: {
-    position: 'absolute',
-    top: 16,
-    left: 16, 
-    zIndex: 10,
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 28,
-    color: colors.textSecondary,
-  },
   headerContainer: {
     marginTop: 60,
     marginBottom: 40,
@@ -333,6 +320,28 @@ const styles = StyleSheet.create({
     borderColor: colors.gray200,
     backgroundColor: colors.gray50,
     overflow: 'hidden',
+  },
+
+  passwordInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  passwordInput: {
+    flex: 1,
+  },
+
+  passwordToggle: {
+    paddingHorizontal: 16,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  passwordToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.brand,
   },
   input: {
     height: 56,

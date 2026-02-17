@@ -9,6 +9,7 @@ import {
   Alert,
   StatusBar,
   Dimensions,
+  useWindowDimensions,
   ActivityIndicator,
   SafeAreaView,
   TouchableWithoutFeedback
@@ -17,7 +18,7 @@ import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Menu from './Menu'; // Import the Menu component
+import Menu, { getMenuWidth } from './Menu'; // Import the Menu component
 import { colors, radii, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
 
@@ -46,6 +47,8 @@ const categoryEmojis = {
 };
 
 const CategoriesScreen = () => {
+  const { width: screenWidth } = useWindowDimensions();
+  const menuWidth = getMenuWidth(screenWidth);
   const navigation = useNavigation();
   const [scaleValue] = useState(new Animated.Value(1));
   const [userId, setUserId] = useState(null);
@@ -58,7 +61,7 @@ const CategoriesScreen = () => {
   const [successMessage, setSuccessMessage] = useState('');
   
   // Animation for the menu
-  const menuAnimation = useRef(new Animated.Value(-width * 0.7)).current;
+  const menuAnimation = useRef(new Animated.Value(-menuWidth)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
   // New animation values for notification
@@ -130,7 +133,7 @@ const CategoriesScreen = () => {
       // Close menu
       Animated.parallel([
         Animated.timing(menuAnimation, {
-          toValue: -width * 0.7,
+          toValue: -menuWidth,
           duration: 300,
           useNativeDriver: true,
         }),
@@ -157,6 +160,12 @@ const CategoriesScreen = () => {
     }
     setMenuOpen(!menuOpen);
   };
+
+  useEffect(() => {
+    if (!menuOpen) {
+      menuAnimation.setValue(-menuWidth);
+    }
+  }, [menuWidth, menuOpen, menuAnimation]);
 
   // Check login status and fetch User ID
   useEffect(() => {

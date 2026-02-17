@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, SafeAreaView, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, SafeAreaView, StatusBar, ScrollView } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { colors, radii, spacing } from '../styles/theme';
+import { colors, isTablet, layout, radii, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
 
 // Switch to local backend for testing (change to false for production)
@@ -168,7 +168,14 @@ const AnswerScreen = ({ route, navigation }) => {
                 ) : (
                   <View style={styles.descriptionContainer}>
                     <Text style={styles.descriptionLabel}>Explanation:</Text>
-                    <Text style={styles.descriptionText}>{description}</Text>
+                    <ScrollView
+                      style={styles.descriptionScroll}
+                      contentContainerStyle={styles.descriptionScrollContent}
+                      showsVerticalScrollIndicator
+                      nestedScrollEnabled
+                    >
+                      <Text style={styles.descriptionText}>{description}</Text>
+                    </ScrollView>
                   </View>
                 )}
               </View>
@@ -208,18 +215,18 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   questionCounter: {
-    fontSize: 14,
+    fontSize: type.caption,
     color: colors.textMuted,
     marginBottom: 10,
   },
   questionTitle: {
-    fontSize: 16,
+    fontSize: type.body,
     fontWeight: 'bold',
     color: colors.textSecondary,
     marginBottom: 5,
   },
   questionText: {
-    fontSize: 18,
+    fontSize: type.bodyLg,
     fontWeight: 'bold',
     marginBottom: 20,
     color: colors.textPrimary,
@@ -229,7 +236,7 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   answerLabel: {
-    fontSize: 14,
+    fontSize: type.bodySm,
     fontWeight: '600',
     marginBottom: 4,
     color: colors.textSecondary,
@@ -257,12 +264,12 @@ const styles = StyleSheet.create({
     borderColor: colors.dangerBorder,
   },
   correctAnswerText: {
-    fontSize: 16,
+    fontSize: type.body,
     color: colors.success,
     fontWeight: '500',
   },
   userAnswerText: {
-    fontSize: 16,
+    fontSize: type.body,
     fontWeight: '500',
   },
   correctText: {
@@ -277,7 +284,7 @@ const styles = StyleSheet.create({
   },
   loaderText: {
     marginTop: 10,
-    fontSize: 14,
+    fontSize: type.bodySm,
     color: colors.textMuted,
   },
   descriptionContainer: {
@@ -285,21 +292,31 @@ const styles = StyleSheet.create({
     padding: 12,
     backgroundColor: colors.gray100,
     borderRadius: radii.sm,
+    flexShrink: 1,
   },
   descriptionLabel: {
-    fontSize: 14,
+    fontSize: type.bodySm,
     fontWeight: '600',
     marginBottom: 6,
     color: colors.textSecondary,
   },
+  descriptionScroll: {
+    minHeight: isTablet ? 140 : 90,
+    maxHeight: isTablet ? 240 : 140,
+  },
+  descriptionScrollContent: {
+    paddingBottom: 2,
+  },
   descriptionText: {
-    fontSize: 15,
-    lineHeight: 22,
+    fontSize: type.bodySm,
+    lineHeight: isTablet ? 24 : 22,
     color: colors.textSecondary,
   },
   nextButton: {
     marginTop: 20,
     width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
   },
   noQuestionsText: {
     fontSize: 16,

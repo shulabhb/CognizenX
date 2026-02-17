@@ -5,10 +5,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Dimensions,
+  useWindowDimensions,
   Alert,
   Platform,
-  StatusBar
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
@@ -22,9 +21,20 @@ const USE_LOCAL_BACKEND = false;
 const API_BASE_URL = USE_LOCAL_BACKEND 
   ? `http://127.0.0.1:6000`  // Local backend
   : `https://cognizen-x-backend.vercel.app`;  // Production backend
-const { width, height } = Dimensions.get('window');
+
+const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
+
+export const getMenuWidth = (screenWidth) => {
+  const isTablet = screenWidth >= 768;
+  const minWidth = isTablet ? 320 : 260;
+  const maxWidth = isTablet ? 420 : Math.min(360, screenWidth * 0.88);
+  const preferred = isTablet ? screenWidth * 0.32 : screenWidth * 0.8;
+  return clamp(preferred, minWidth, maxWidth);
+};
 
 const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handleLogout }) => {
+  const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const menuWidth = getMenuWidth(screenWidth);
   
   const handleDeleteAccount = async () => {
     try {
@@ -77,7 +87,16 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
   return (
     <>
       {/* Full Screen Menu Container */}
-      <Animated.View style={[styles.menuContainer, { transform: [{ translateX: menuAnimation }] }]}>
+      <Animated.View
+        style={[
+          styles.menuContainer,
+          {
+            width: menuWidth,
+            height: screenHeight,
+            transform: [{ translateX: menuAnimation }],
+          },
+        ]}
+      >
         {/* Header */}
         <View style={[ui.headerRow, styles.header]}>
           <Text style={styles.title}>Menu</Text>
@@ -157,8 +176,6 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 0,
     left: 0,
-    width: width * 0.8,
-    height: height,
     backgroundColor: colors.white,
     ...shadow({ offsetWidth: 2, offsetHeight: 0, opacity: 0.15, radius: 8, elevation: 8 }),
     zIndex: 1000,

@@ -1,6 +1,35 @@
 // Centralized styling tokens.
 // Keep values aligned with existing screens to avoid visual changes.
 
+import { Dimensions, Platform } from 'react-native';
+
+const { width: screenWidth } = Dimensions.get('window');
+export const isTablet = Platform.OS === 'ios' ? !!Platform.isPad : screenWidth >= 768;
+
+export const typeScale = {
+  phone: {
+    caption: 13,
+    bodySm: 15,
+    body: 16,
+    bodyLg: 18,
+    button: 16,
+  },
+  tablet: {
+    caption: 15,
+    bodySm: 17,
+    body: 18,
+    bodyLg: 20,
+    button: 18,
+  },
+};
+
+export const type = isTablet ? typeScale.tablet : typeScale.phone;
+
+export const layout = {
+  contentMaxWidth: 900,
+  modalMaxWidth: 520,
+};
+
 export const colors = {
   background: '#f7f7f7',
   surface: '#ffffff',

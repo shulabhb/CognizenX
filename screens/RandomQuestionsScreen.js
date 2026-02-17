@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert } fr
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-import { colors, spacing } from '../styles/theme';
+import { colors, layout, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
 
 // Switch to local backend for testing (change to false for production)
@@ -210,22 +210,26 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
   return (
     <View style={[ui.screen, styles.container]}>
       {questions.length > 0 ? (
-        <View>
-          <Text style={styles.questionText}>
-            Q{currentQuestionIndex + 1}: {questions[currentQuestionIndex].question}
-          </Text>
-          {questions[currentQuestionIndex].options.map((option, index) => (
-            <TouchableOpacity
-              key={index}
-              style={styles.answerButton}
-              onPress={() => handleSelectAnswer(option)}
-            >
-              <Text style={styles.answerText}>{String.fromCharCode(65 + index)}. {option}</Text>
-            </TouchableOpacity>
-          ))}
+        <View style={styles.contentWrap}>
+          <View style={ui.card}>
+            <Text style={styles.questionText}>
+              Q{currentQuestionIndex + 1}: {questions[currentQuestionIndex].question}
+            </Text>
+            {questions[currentQuestionIndex].options.map((option, index) => (
+              <TouchableOpacity
+                key={index}
+                style={styles.answerButton}
+                onPress={() => handleSelectAnswer(option)}
+              >
+                <Text style={styles.answerText}>
+                  {String.fromCharCode(65 + index)}. {option}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
       ) : (
-        <Text>No questions available.</Text>
+        <Text style={styles.emptyText}>No questions available.</Text>
       )}
     </View>
   );
@@ -233,9 +237,15 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     padding: spacing.lg,
     backgroundColor: colors.backgroundLight,
     justifyContent: 'center',
+  },
+  contentWrap: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
   },
   loader: {
     flex: 1,
@@ -243,9 +253,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   questionText: {
-    fontSize: 20,
+    fontSize: type.bodyLg,
     fontWeight: 'bold',
     marginBottom: 20,
+    color: colors.textPrimary,
+    textAlign: 'center',
   },
   answerButton: {
     padding: 15,
@@ -254,7 +266,13 @@ const styles = StyleSheet.create({
     marginVertical: 5,
   },
   answerText: {
-    fontSize: 16,
+    fontSize: type.body,
+    color: colors.textSecondary,
+  },
+  emptyText: {
+    fontSize: type.body,
+    color: colors.textMuted,
+    textAlign: 'center',
   },
 });
 

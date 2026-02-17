@@ -6,12 +6,13 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  useWindowDimensions,
   StatusBar,
   SafeAreaView,
   TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Menu from './Menu';
+import Menu, { getMenuWidth } from './Menu';
 
 import { colors, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
@@ -22,13 +23,22 @@ const { width, height } = Dimensions.get('window');
 const MENU_ICON = '≡';
 
 const GamesScreen = () => {
+  const { width: screenWidth } = useWindowDimensions();
+  const menuWidth = getMenuWidth(screenWidth);
+
   const navigation = useNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(true); // You can add login check logic here
   
   // Animation for the menu
-  const menuAnimation = useRef(new Animated.Value(-width * 0.8)).current;
+  const menuAnimation = useRef(new Animated.Value(-menuWidth)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
+
+  React.useEffect(() => {
+    if (!menuOpen) {
+      menuAnimation.setValue(-menuWidth);
+    }
+  }, [menuWidth, menuOpen, menuAnimation]);
 
   // Toggle menu function
   const toggleMenu = () => {
@@ -36,7 +46,7 @@ const GamesScreen = () => {
       // Close menu
       Animated.parallel([
         Animated.timing(menuAnimation, {
-          toValue: -width * 0.8,
+          toValue: -menuWidth,
           duration: 300,
           useNativeDriver: true,
         }),

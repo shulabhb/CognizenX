@@ -1,6 +1,6 @@
 import { StyleSheet } from 'react-native';
 
-import { colors, radii, shadow, spacing } from './theme';
+import { colors, layout, radii, shadow, spacing, type } from './theme';
 
 export const ui = StyleSheet.create({
   screen: {
@@ -43,6 +43,21 @@ export const ui = StyleSheet.create({
     textTransform: 'capitalize',
   },
 
+  textCaption: {
+    fontSize: type.caption,
+    color: colors.textMuted,
+  },
+
+  textBody: {
+    fontSize: type.body,
+    color: colors.textSecondary,
+  },
+
+  textBodySm: {
+    fontSize: type.bodySm,
+    color: colors.textSecondary,
+  },
+
   headerTitleLg: {
     fontSize: 22,
     fontWeight: '700',
@@ -68,6 +83,8 @@ export const ui = StyleSheet.create({
     borderRadius: radii.lg,
     padding: spacing.xl,
     width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     ...shadow({ offsetHeight: 2, radius: 4, elevation: 3 }),
   },
 
@@ -75,6 +92,9 @@ export const ui = StyleSheet.create({
     backgroundColor: colors.surface,
     padding: 20,
     borderRadius: 12,
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     ...shadow({ color: colors.brand, opacity: 0.1, radius: 10, elevation: 3 }),
   },
 
@@ -82,6 +102,9 @@ export const ui = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: 20,
     padding: 24,
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     ...shadow({ color: colors.brand, offsetHeight: 4, opacity: 0.1, radius: 20, elevation: 4 }),
   },
 
@@ -90,11 +113,14 @@ export const ui = StyleSheet.create({
     backgroundColor: colors.surface,
     borderRadius: radii.xl,
     padding: spacing.lg,
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
     ...shadow({ color: colors.brand, offsetHeight: 4, opacity: 0.1, radius: 8, elevation: 3 }),
   },
 
   label: {
-    fontSize: 14,
+    fontSize: type.bodySm,
     fontWeight: '600',
     color: colors.textSecondary,
     marginBottom: 8,
@@ -111,7 +137,7 @@ export const ui = StyleSheet.create({
   input: {
     height: 56,
     paddingHorizontal: 16,
-    fontSize: 16,
+    fontSize: type.body,
     color: colors.textSecondary,
   },
 
@@ -125,7 +151,7 @@ export const ui = StyleSheet.create({
 
   buttonPrimaryText: {
     color: colors.white,
-    fontSize: 16,
+    fontSize: type.button,
     fontWeight: '600',
   },
 
@@ -138,7 +164,7 @@ export const ui = StyleSheet.create({
 
   buttonPillText: {
     color: colors.white,
-    fontSize: 16,
+    fontSize: type.button,
     fontWeight: '600',
   },
 
@@ -181,7 +207,7 @@ export const ui = StyleSheet.create({
   subdomainText: {
     color: colors.white,
     fontWeight: '500',
-    fontSize: 14,
+    fontSize: type.bodySm,
   },
 
   modalOverlay: {
@@ -196,6 +222,7 @@ export const ui = StyleSheet.create({
     borderRadius: 16,
     padding: 20,
     width: '80%',
+    maxWidth: layout.modalMaxWidth,
     alignItems: 'center',
     ...shadow({ color: colors.black, offsetHeight: 2, opacity: 0.25, radius: 4, elevation: 5 }),
   },

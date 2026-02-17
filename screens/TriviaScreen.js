@@ -7,6 +7,7 @@ import {
   TouchableOpacity, 
   SafeAreaView,
   Dimensions,
+  useWindowDimensions,
   StatusBar,
   Animated,
   TouchableWithoutFeedback,
@@ -15,7 +16,7 @@ import {
 import axios from 'axios';
 import { useNavigation } from '@react-navigation/native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import Menu from './Menu';
+import Menu, { getMenuWidth } from './Menu';
 
 import { colors, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
@@ -25,6 +26,9 @@ const MENU_ICON = '≡';
 const CLOSE_ICON = '✕';
 
 const TriviaScreen = ({ route }) => {
+  const { width: screenWidth } = useWindowDimensions();
+  const menuWidth = getMenuWidth(screenWidth);
+
   const [questions, setQuestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
@@ -35,9 +39,15 @@ const TriviaScreen = ({ route }) => {
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
-  const menuAnimation = useRef(new Animated.Value(-width * 0.7)).current;
+  const menuAnimation = useRef(new Animated.Value(-menuWidth)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
+
+  useEffect(() => {
+    if (!menuOpen) {
+      menuAnimation.setValue(-menuWidth);
+    }
+  }, [menuWidth, menuOpen, menuAnimation]);
 
   const navigation = useNavigation();
 
@@ -56,7 +66,7 @@ const TriviaScreen = ({ route }) => {
       // Close menu
       Animated.parallel([
         Animated.timing(menuAnimation, {
-          toValue: -width * 0.7,
+          toValue: -menuWidth,
           duration: 300,
           useNativeDriver: true,
         }),
@@ -205,18 +215,15 @@ const TriviaScreen = ({ route }) => {
   return (
     <SafeAreaView style={ui.screen}>
       <StatusBar barStyle="dark-content" backgroundColor={colors.background} />
-      
-      {/* Menu */}
-      <Animated.View
-        style={[
-          styles.menuContainer,
-          {
-            transform: [{ translateX: menuAnimation }],
-          },
-        ]}
-      >
-        <Menu onClose={toggleMenu} onLogout={handleLogout} navigation={navigation} />
-      </Animated.View>
+
+      {/* Drawer Menu */}
+      <Menu
+        navigation={navigation}
+        isOpen={menuOpen}
+        closeMenu={toggleMenu}
+        menuAnimation={menuAnimation}
+        handleLogout={handleLogout}
+      />
       
       {/* Main Content */}
       <Animated.View
