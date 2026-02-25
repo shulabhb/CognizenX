@@ -15,12 +15,7 @@ import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 
 import { colors, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
-
-// Switch to local backend for testing (change to false for production)
-const USE_LOCAL_BACKEND = false;
-const API_BASE_URL = USE_LOCAL_BACKEND 
-  ? `http://127.0.0.1:6000`  // Local backend
-  : `https://cognizen-x-backend.vercel.app`;  // Production backend
+import { API_BASE_URL } from "../config/backend";
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 

@@ -20,6 +20,7 @@ import Menu, { getMenuWidth } from './Menu';
 
 import { colors, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
+import { API_BASE_URL } from "../config/backend";
 
 const { width, height } = Dimensions.get('window');
 const MENU_ICON = '≡';
@@ -53,11 +54,6 @@ const TriviaScreen = ({ route }) => {
 
   const { category, subDomain } = route.params;
 
-  // Switch to local backend for testing (change to false for production)
-  const USE_LOCAL_BACKEND = false;
-  const API_BASE_URL = USE_LOCAL_BACKEND 
-    ? `http://127.0.0.1:6000`  // Local backend
-    : `https://cognizen-x-backend.vercel.app`;  // Production backend
   const QUESTIONS_API_URL = `${API_BASE_URL}/api/questions?category=${category}&subDomain=${subDomain}`;
 
   // Toggle menu function

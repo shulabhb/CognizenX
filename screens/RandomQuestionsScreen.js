@@ -5,12 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { colors, layout, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
-
-// Switch to local backend for testing (change to false for production)
-const USE_LOCAL_BACKEND = false;
-const API_BASE_URL = USE_LOCAL_BACKEND 
-  ? `http://127.0.0.1:6000`  // Local backend (127.0.0.1 works better for iOS Simulator)
-  : `https://cognizen-x-backend.vercel.app`;  // Production backend
+import { API_BASE_URL } from "../config/backend";
 
 const RandomQuestionsScreen = ({ route, navigation }) => {
   console.log(route.params)

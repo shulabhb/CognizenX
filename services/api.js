@@ -1,10 +1,8 @@
 import axios from "axios";
 
-// Production (Hosted) Backend
-const API = axios.create({ baseURL: "https://cognizen-x-backend.vercel.app/api/auth" });
+import { AUTH_BASE_URL } from "../config/backend";
 
-// Testing (Local) Backend
-// const API = axios.create({ baseURL: "http://localhost:6000/api/auth" });
+const API = axios.create({ baseURL: AUTH_BASE_URL });
 
 
 export const signup = (data) => API.post("/signup", data);

@@ -24,12 +24,8 @@ import axios from "axios";
 import Menu, { getMenuWidth } from "./Menu"; // Import the Menu component
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { API_BASE_URL } from "../config/backend";
 
-// Switch to local backend for testing (change to false for production)
-const USE_LOCAL_BACKEND = false;
-const API_BASE_URL = USE_LOCAL_BACKEND 
-  ? `http://127.0.0.1:6000`  // Local backend
-  : `https://cognizen-x-backend.vercel.app`;  // Production backend
 const { width, height } = Dimensions.get("window");
 
 // Category emojis mapping
@@ -181,7 +177,8 @@ const HomeScreen = ({ navigation }) => {
 
   const fetchUserPreferences = async () => {
     setLoading(true);
-    
+    let trimmedToken;
+
     try {
       const loggedIn = await checkLoginStatus();
       
@@ -199,7 +196,7 @@ const HomeScreen = ({ navigation }) => {
         }
         
         // Trim token to remove any whitespace
-        const trimmedToken = sessionToken.trim();
+        trimmedToken = sessionToken.trim();
         console.log("Fetching preferences with token:", trimmedToken.substring(0, 20) + "...");
         
         // Retry logic for initial fetch (in case of timing issues after login)
@@ -273,7 +270,10 @@ const HomeScreen = ({ navigation }) => {
       // If it's a 401 (unauthorized), clear the invalid token
       if (error.response?.status === 401) {
         console.log("401 error - clearing invalid token");
-        console.log("Token that failed:", trimmedToken ? trimmedToken.substring(0, 20) + "..." : "no token");
+        console.log(
+          "Token that failed:",
+          trimmedToken ? trimmedToken.substring(0, 20) + "..." : "no token"
+        );
         await AsyncStorage.removeItem("sessionToken");
         setIsLoggedIn(false);
         setPreferences([]);

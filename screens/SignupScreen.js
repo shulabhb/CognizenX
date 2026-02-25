@@ -6,6 +6,8 @@ import {
   Alert,
   TouchableOpacity,
   StyleSheet,
+  Modal,
+  FlatList,
   KeyboardAvoidingView,
   Platform,
   TouchableWithoutFeedback,
@@ -18,31 +20,70 @@ import {
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
+import countries from "i18n-iso-countries";
+import en from "i18n-iso-countries/langs/en.json";
 
 import { colors, shadow } from '../styles/theme';
 import { ui } from '../styles/ui';
+import { API_BASE_URL } from "../config/backend";
 
-// Switch to local backend for testing (change to false for production)
-const USE_LOCAL_BACKEND = false;
-const API_BASE_URL = USE_LOCAL_BACKEND 
-  ? `http://127.0.0.1:6000`  // Local backend
-  : `https://cognizen-x-backend.vercel.app`;  // Production backend
 const { width } = Dimensions.get("window");
+
+countries.registerLocale(en);
+const COUNTRY_OPTIONS = Object.entries(
+  countries.getNames("en", { select: "official" })
+)
+  .map(([code, name]) => ({ code, name }))
+  .sort((a, b) => a.name.localeCompare(b.name));
+
+const GENDER_OPTIONS = [
+  { label: "Select gender...", value: "" },
+  { label: "Female", value: "female" },
+  { label: "Male", value: "male" },
+  { label: "Non-binary", value: "non_binary" },
+  { label: "Other", value: "other" },
+  { label: "Prefer not to say", value: "prefer_not_to_say" },
+];
 
 const SignupScreen = ({ navigation }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [age, setAge] = useState("");
+  const [gender, setGender] = useState("");
+  const [countryOfOrigin, setCountryOfOrigin] = useState("");
+  const [genderModalVisible, setGenderModalVisible] = useState(false);
+  const [countryModalVisible, setCountryModalVisible] = useState(false);
+  const [countrySearch, setCountrySearch] = useState("");
+  const [yearsOfEducation, setYearsOfEducation] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const nameRef = useRef(null);
   const emailRef = useRef(null);
+  const ageRef = useRef(null);
+  const genderRef = useRef(null);
+  const countryOfOriginRef = useRef(null);
+  const yearsOfEducationRef = useRef(null);
   const passwordRef = useRef(null);
 
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
+
+  const selectedGenderLabel =
+    GENDER_OPTIONS.find((g) => g.value === gender)?.label || "";
+
+  const selectedCountryCode = countryOfOrigin ? String(countryOfOrigin).toUpperCase() : "";
+  const selectedCountryLabel = selectedCountryCode
+    ? countries.getName(selectedCountryCode, "en", { select: "official" })
+    : "";
+
+  const filteredCountries = COUNTRY_OPTIONS.filter((c) => {
+    const q = countrySearch.trim().toLowerCase();
+    if (!q) return true;
+    return c.name.toLowerCase().includes(q) || c.code.toLowerCase().includes(q);
+  });
 
   useEffect(() => {
     // Start entrance animations
@@ -91,6 +132,10 @@ const SignupScreen = ({ navigation }) => {
         name,
         email,
         password,
+        age: age ? Number(age) : undefined,
+        gender: gender || undefined,
+        countryOfOrigin: countryOfOrigin ? String(countryOfOrigin).toUpperCase() : undefined,
+        yearsOfEducation: yearsOfEducation ? Number(yearsOfEducation) : undefined,
       });
 
       const { sessionToken } = response.data;
@@ -185,6 +230,78 @@ const SignupScreen = ({ navigation }) => {
                   />
                 </View>
               </View>
+              
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Age</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter your age"
+                    placeholderTextColor={colors.gray400}
+                    value={age}
+                    onChangeText={setAge}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Gender</Text>
+                <View style={styles.inputWrapper}>
+                  <TouchableOpacity
+                    onPress={() => setGenderModalVisible(true)}
+                    style={styles.selectButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Select gender"
+                  >
+                    <Text
+                      style={gender ? styles.selectText : styles.selectPlaceholder}
+                      numberOfLines={1}
+                    >
+                      {gender ? selectedGenderLabel : "Select gender..."}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Country of Origin</Text>
+                <View style={styles.inputWrapper}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setCountrySearch("");
+                      setCountryModalVisible(true);
+                    }}
+                    style={styles.selectButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Select country of origin"
+                  >
+                    <Text
+                      style={countryOfOrigin ? styles.selectText : styles.selectPlaceholder}
+                      numberOfLines={1}
+                    >
+                      {countryOfOrigin
+                        ? `${selectedCountryLabel} (${selectedCountryCode})`
+                        : "Select country..."}
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <View style={styles.inputContainer}>
+                <Text style={styles.label}>Years of Education</Text>
+                <View style={styles.inputWrapper}>
+                  <TextInput
+                    style={styles.input}
+                    placeholder="Enter years of education"
+                    placeholderTextColor={colors.gray400}
+                    value={yearsOfEducation}
+                    onChangeText={setYearsOfEducation}
+                    keyboardType="numeric"
+                  />
+                </View>
+              </View>
+
 
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email Address</Text>
@@ -267,6 +384,108 @@ const SignupScreen = ({ navigation }) => {
        
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
+
+      {/* Gender Modal */}
+      <Modal
+        visible={genderModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setGenderModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setGenderModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBackdrop} />
+            <TouchableWithoutFeedback>
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Select Gender</Text>
+                {GENDER_OPTIONS.map((opt, idx) => (
+                  <View key={opt.value || "__empty"}>
+                    <TouchableOpacity
+                      style={styles.modalOption}
+                      onPress={() => {
+                        setGender(opt.value);
+                        setGenderModalVisible(false);
+                      }}
+                    >
+                      <Text style={styles.modalOptionText}>{opt.label}</Text>
+                    </TouchableOpacity>
+                    {idx < GENDER_OPTIONS.length - 1 ? (
+                      <View style={styles.modalDivider} />
+                    ) : null}
+                  </View>
+                ))}
+                <View style={styles.modalSpacer} />
+                <TouchableOpacity
+                  style={styles.modalCancel}
+                  onPress={() => setGenderModalVisible(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
+
+      {/* Country Modal */}
+      <Modal
+        visible={countryModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCountryModalVisible(false)}
+      >
+        <TouchableWithoutFeedback onPress={() => setCountryModalVisible(false)}>
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBackdrop} />
+            <TouchableWithoutFeedback>
+              <View style={styles.modalCard}>
+                <Text style={styles.modalTitle}>Select Country</Text>
+                <View style={styles.modalSearchWrapper}>
+                  <TextInput
+                    style={styles.modalSearchInput}
+                    placeholder="Search country"
+                    placeholderTextColor={colors.gray400}
+                    value={countrySearch}
+                    onChangeText={setCountrySearch}
+                    autoCorrect={false}
+                    autoCapitalize="none"
+                  />
+                </View>
+
+                <View style={styles.modalList}>
+                  <FlatList
+                    data={filteredCountries}
+                    keyExtractor={(item) => item.code}
+                    keyboardShouldPersistTaps="handled"
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.modalOption}
+                        onPress={() => {
+                          setCountryOfOrigin(item.code);
+                          setCountryModalVisible(false);
+                        }}
+                      >
+                        <Text style={styles.modalOptionText} numberOfLines={1}>
+                          {item.name} ({item.code})
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                    ItemSeparatorComponent={() => <View style={styles.modalDivider} />}
+                  />
+                </View>
+
+                <View style={styles.modalSpacer} />
+                <TouchableOpacity
+                  style={styles.modalCancel}
+                  onPress={() => setCountryModalVisible(false)}
+                >
+                  <Text style={styles.modalCancelText}>Cancel</Text>
+                </TouchableOpacity>
+              </View>
+            </TouchableWithoutFeedback>
+          </View>
+        </TouchableWithoutFeedback>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -361,6 +580,85 @@ const styles = StyleSheet.create({
     height: 56,
     paddingHorizontal: 16,
     fontSize: 16,
+    color: colors.textSecondary,
+  },
+  selectButton: {
+    height: 56,
+    paddingHorizontal: 16,
+    justifyContent: "center",
+  },
+  selectText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  selectPlaceholder: {
+    fontSize: 16,
+    color: colors.gray400,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  modalBackdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: colors.textSecondary,
+    opacity: 0.35,
+  },
+  modalCard: {
+    backgroundColor: colors.white,
+    borderTopLeftRadius: 18,
+    borderTopRightRadius: 18,
+    padding: 16,
+  },
+  modalTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  modalOption: {
+    paddingVertical: 14,
+  },
+  modalOptionText: {
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  modalDivider: {
+    height: 1,
+    backgroundColor: colors.gray200,
+  },
+  modalSearchWrapper: {
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.gray200,
+    backgroundColor: colors.gray50,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+  modalSearchInput: {
+    height: 44,
+    paddingHorizontal: 14,
+    fontSize: 16,
+    color: colors.textSecondary,
+  },
+  modalList: {
+    maxHeight: 360,
+  },
+  modalSpacer: {
+    height: 12,
+  },
+  modalCancel: {
+    height: 48,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.gray200,
+    backgroundColor: colors.gray50,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCancelText: {
+    fontSize: 16,
+    fontWeight: "600",
     color: colors.textSecondary,
   },
   signupButton: {

@@ -21,12 +21,8 @@ import axios from "axios";
 
 import { colors, shadow } from '../styles/theme';
 import { ui } from '../styles/ui';
+import { API_BASE_URL } from "../config/backend";
 
-// Switch to local backend for testing (change to false for production)
-const USE_LOCAL_BACKEND = false;
-const API_BASE_URL = USE_LOCAL_BACKEND 
-  ? `http://127.0.0.1:6000`  // Local backend
-  : `https://cognizen-x-backend.vercel.app`;  // Production backend
 const { width } = Dimensions.get("window");
 
 const LoginScreen = ({ navigation }) => {
