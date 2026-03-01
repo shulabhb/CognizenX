@@ -12,6 +12,8 @@ import {
   ScrollView
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { colors, radii, shadow, spacing } from '../styles/theme';
+import { ui } from '../styles/ui';
 
 const { width, height } = Dimensions.get('window');
 
@@ -43,7 +45,7 @@ const PuzzlesGameScreen = () => {
       description: 'Match pairs of cards to test your memory',
       icon: '🧠',
       difficulty: 'Easy',
-      color: '#8B5CF6',
+      color: colors.brandDark,
     },
     {
       id: 'pattern',
@@ -51,7 +53,7 @@ const PuzzlesGameScreen = () => {
       description: 'Watch and repeat the colored circle pattern',
       icon: '🔢',
       difficulty: 'Medium',
-      color: '#10B981',
+      color: colors.success,
     },
   ];
 
@@ -80,24 +82,28 @@ const PuzzlesGameScreen = () => {
 
   const getDifficultyColor = (difficulty) => {
     switch (difficulty) {
-      case 'Easy': return '#10B981';
-      case 'Medium': return '#F59E0B';
-      case 'Hard': return '#EF4444';
-      default: return '#6B7280';
+      case 'Easy':
+        return colors.success;
+      case 'Medium':
+        return colors.warning;
+      case 'Hard':
+        return colors.danger;
+      default:
+        return colors.textMuted;
     }
   };
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#8B5CF6" barStyle="light-content" />
+      <StatusBar backgroundColor={colors.brandDark} barStyle="light-content" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+      <View style={[ui.headerRow, styles.header]}>
+        <TouchableOpacity onPress={handleBackPress} style={ui.iconButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Puzzles</Text>
-        <View style={styles.emptyBox} />
+        <Text style={ui.headerTitleLight}>Puzzles</Text>
+        <View style={ui.headerSpacer} />
       </View>
 
       {/* Content */}
@@ -154,8 +160,8 @@ const PuzzlesGameScreen = () => {
             </View>
             
             <View style={styles.gameControls}>
-              <TouchableOpacity style={styles.resetButton} onPress={resetGame}>
-                <Text style={styles.resetButtonText}>Back to Puzzles</Text>
+              <TouchableOpacity style={[ui.buttonPill, styles.resetButton]} onPress={resetGame}>
+                <Text style={ui.buttonPillText}>Back to Puzzles</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -168,40 +174,23 @@ const PuzzlesGameScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#8B5CF6",
+    backgroundColor: colors.brandDark,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-    backgroundColor: "#8B5CF6",
-  },
-  backButton: {
-    padding: 8,
+    backgroundColor: colors.brandDark,
   },
   backIcon: {
     fontSize: 24,
-    color: "#FFFFFF",
+    color: colors.white,
     fontWeight: "600",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  emptyBox: {
-    width: 40,
   },
   content: {
     flex: 1,
-    backgroundColor: "#F5F3FF",
+    backgroundColor: colors.backgroundTint,
   },
   puzzlesContainer: {
     flex: 1,
-    padding: 20,
+    padding: spacing.xl,
   },
   welcomeSection: {
     alignItems: "center",
@@ -214,15 +203,15 @@ const styles = StyleSheet.create({
   welcomeTitle: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#1F2937",
+    color: colors.textPrimary,
     marginBottom: 8,
   },
   welcomeDescription: {
     fontSize: 16,
-    color: "#6B7280",
+    color: colors.textMuted,
     textAlign: "center",
     lineHeight: 24,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
   },
   puzzlesGrid: {
     gap: 16,
@@ -230,13 +219,9 @@ const styles = StyleSheet.create({
   puzzleCard: {
     flexDirection: "row",
     alignItems: "center",
-    padding: 20,
-    borderRadius: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    padding: spacing.xl,
+    borderRadius: radii.xl,
+    ...shadow({ offsetHeight: 4, opacity: 0.1, radius: 8, elevation: 4 }),
   },
   puzzleIconContainer: {
     width: 60,
@@ -245,7 +230,7 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(255, 255, 255, 0.2)",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: spacing.lg,
   },
   puzzleIcon: {
     fontSize: 30,
@@ -256,7 +241,7 @@ const styles = StyleSheet.create({
   puzzleTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: colors.white,
     marginBottom: 4,
   },
   puzzleDescription: {
@@ -273,7 +258,7 @@ const styles = StyleSheet.create({
   },
   difficultyText: {
     fontSize: 12,
-    color: "#FFFFFF",
+    color: colors.white,
     fontWeight: "600",
   },
   playButton: {
@@ -286,12 +271,12 @@ const styles = StyleSheet.create({
   },
   playButtonText: {
     fontSize: 16,
-    color: "#FFFFFF",
+    color: colors.white,
     fontWeight: "600",
   },
   gameArea: {
     flex: 1,
-    padding: 20,
+    padding: spacing.xl,
   },
   gameHeader: {
     flexDirection: "row",
@@ -302,52 +287,40 @@ const styles = StyleSheet.create({
   gameTitle: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#1F2937",
+    color: colors.textPrimary,
   },
   scoreText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#6B7280",
+    color: colors.textMuted,
   },
   gameBoard: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    marginBottom: spacing.xl,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadow({ offsetHeight: 2, opacity: 0.1, radius: 4, elevation: 2 }),
   },
   comingSoonText: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#6B7280",
+    color: colors.textMuted,
     textAlign: "center",
     marginBottom: 8,
   },
   comingSoonSubtext: {
     fontSize: 14,
-    color: "#9CA3AF",
+    color: colors.gray400,
     textAlign: "center",
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
   },
   gameControls: {
     alignItems: "center",
   },
   resetButton: {
-    backgroundColor: "#6B7280",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 25,
-  },
-  resetButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
-    fontWeight: "600",
+    backgroundColor: colors.textMuted,
   },
 });
 

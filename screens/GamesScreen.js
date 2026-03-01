@@ -6,12 +6,15 @@ import {
   TouchableOpacity,
   Animated,
   Dimensions,
+  useWindowDimensions,
   StatusBar,
   TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import Menu from './Menu';
-import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import Menu, { getMenuWidth } from './Menu';
+
+import { colors, shadow, spacing } from '../styles/theme';
+import { ui } from '../styles/ui';
 
 const { width, height } = Dimensions.get('window');
 
@@ -19,14 +22,23 @@ const { width, height } = Dimensions.get('window');
 const MENU_ICON = '≡';
 
 const GamesScreen = () => {
+  const { width: screenWidth } = useWindowDimensions();
+  const menuWidth = getMenuWidth(screenWidth);
+
   const navigation = useNavigation();
   const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(true); // You can add login check logic here
   
   // Animation for the menu
-  const menuAnimation = useRef(new Animated.Value(-width * 0.8)).current;
+  const menuAnimation = useRef(new Animated.Value(-menuWidth)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
+
+  React.useEffect(() => {
+    if (!menuOpen) {
+      menuAnimation.setValue(-menuWidth);
+    }
+  }, [menuWidth, menuOpen, menuAnimation]);
 
   // Toggle menu function
   const toggleMenu = () => {
@@ -34,7 +46,7 @@ const GamesScreen = () => {
       // Close menu
       Animated.parallel([
         Animated.timing(menuAnimation, {
-          toValue: -width * 0.8,
+          toValue: -menuWidth,
           duration: 300,
           useNativeDriver: true,
         }),
@@ -116,21 +128,18 @@ const GamesScreen = () => {
   };
 
   return (
-    <SafeAreaView style={[styles.container, {
-      paddingTop: insets.top,
-      paddingBottom: insets.bottom,
-    }]}>
-      <StatusBar backgroundColor="#F5F3FF" barStyle="dark-content" />
+    <SafeAreaView style={ui.screenTint}>
+      <StatusBar backgroundColor={colors.backgroundTint} barStyle="dark-content" />
       
       {/* Main Content */}
-      <Animated.View style={[styles.mainContent, { opacity: screenOpacity }]}>
+      <Animated.View style={[ui.screenTint, { opacity: screenOpacity }]}>
         {/* Header with Menu Icon */}
-        <View style={styles.header}>
-          <TouchableOpacity onPress={toggleMenu} style={styles.menuButton}>
+        <View style={[ui.headerRow, styles.header]}>
+          <TouchableOpacity onPress={toggleMenu} style={ui.iconButton}>
             <Text style={styles.menuIconText}>{MENU_ICON}</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Games</Text>
-          <View style={styles.emptyBox} />
+          <Text style={ui.headerTitleLg}>Games</Text>
+          <View style={ui.headerSpacer} />
         </View>
 
         {/* Games Content */}
@@ -184,51 +193,28 @@ const GamesScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#F5F3FF",
-  },
-  mainContent: {
-    flex: 1,
-    backgroundColor: "#F5F3FF",
-  },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    backgroundColor: "#F5F3FF",
-  },
-  headerTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    color: "#4B5563",
-  },
-  menuButton: {
-    padding: 8,
+    backgroundColor: colors.backgroundTint,
   },
   menuIconText: {
     fontSize: 26,
-    color: "#4B5563",
-  },
-  emptyBox: {
-    width: 40,
+    color: colors.textSecondary,
   },
   content: {
     flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 20,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.xl,
   },
   welcomeText: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#1F2937",
+    color: colors.textPrimary,
     textAlign: "center",
     marginBottom: 8,
   },
   subtitleText: {
     fontSize: 16,
-    color: "#6B7280",
+    color: colors.textMuted,
     textAlign: "center",
     marginBottom: 40,
     lineHeight: 24,
@@ -242,11 +228,7 @@ const styles = StyleSheet.create({
     padding: 20,
     borderRadius: 16,
     marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
+    ...shadow({ color: colors.black, offsetHeight: 4, opacity: 0.1, radius: 8, elevation: 4 }),
   },
   gameIconContainer: {
     width: 60,
@@ -266,7 +248,7 @@ const styles = StyleSheet.create({
   gameTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#FFFFFF",
+    color: colors.white,
     marginBottom: 4,
   },
   gameDescription: {
@@ -284,29 +266,25 @@ const styles = StyleSheet.create({
   },
   playButtonText: {
     fontSize: 16,
-    color: "#FFFFFF",
+    color: colors.white,
     fontWeight: "600",
   },
   comingSoonContainer: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     padding: 20,
     borderRadius: 16,
-    shadowColor: "#A78BFA",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadow({ color: colors.brand, offsetHeight: 2, opacity: 0.1, radius: 4, elevation: 2 }),
   },
   comingSoonTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#4B5563",
+    color: colors.textSecondary,
     textAlign: "center",
     marginBottom: 8,
   },
   comingSoonText: {
     fontSize: 14,
-    color: "#6B7280",
+    color: colors.textMuted,
     textAlign: "center",
     lineHeight: 20,
   },

@@ -15,6 +15,9 @@ import {
 } from "react-native";
 import { requestPasswordReset } from "../services/api";
 
+import { colors } from '../styles/theme';
+import { ui } from '../styles/ui';
+
 const ForgotPasswordScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [loading, setLoading] = useState(false);
@@ -52,7 +55,7 @@ const ForgotPasswordScreen = ({ navigation }) => {
             <Text style={styles.subtitle}>Enter your account email and we'll send a reset link.</Text>
           </View>
 
-          <View style={styles.form}>
+          <View style={ui.cardSm}>
             <Text style={styles.label}>Email Address</Text>
             <TextInput
               ref={emailRef}
@@ -68,12 +71,12 @@ const ForgotPasswordScreen = ({ navigation }) => {
             />
 
             {loading ? (
-              <ActivityIndicator size="large" color="#A78BFA" style={{ marginTop: 16 }} />
+              <ActivityIndicator size="large" color={colors.brand} style={styles.loader} />
             ) : (
               <TouchableOpacity
                 style={[
                   styles.submitButton,
-                  !email ? styles.submitButtonDisabled : styles.submitButtonEnabled,
+                  !email ? styles.submitButtonDisabled : ui.buttonPrimaryBg,
                 ]}
                 onPress={handleSubmit}
                 activeOpacity={email ? 0.8 : 1}
@@ -94,20 +97,19 @@ const ForgotPasswordScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#F5F3FF" },
+  safeArea: { flex: 1, backgroundColor: colors.backgroundTint },
   container: { flex: 1, padding: 24 },
   header: { marginTop: 40, marginBottom: 24 },
-  title: { fontSize: 28, fontWeight: "700", color: "#4B5563", marginBottom: 8 },
-  subtitle: { fontSize: 14, color: "#6B7280" },
-  form: { backgroundColor: "#FFF", padding: 20, borderRadius: 12, shadowColor: "#A78BFA", shadowOpacity: 0.1, shadowRadius: 10, elevation: 3 },
-  label: { fontSize: 14, fontWeight: "600", color: "#4B5563", marginBottom: 8 },
-  input: { height: 50, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: "#E5E7EB", backgroundColor: "#FAFAFA" },
+  title: { fontSize: 28, fontWeight: "700", color: colors.textSecondary, marginBottom: 8 },
+  subtitle: { fontSize: 14, color: colors.textMuted },
+  label: { fontSize: 14, fontWeight: "600", color: colors.textSecondary, marginBottom: 8 },
+  input: { height: 50, paddingHorizontal: 12, borderRadius: 8, borderWidth: 1, borderColor: colors.gray200, backgroundColor: colors.gray50 },
   submitButton: { marginTop: 16, paddingVertical: 14, borderRadius: 10, alignItems: "center" },
-  submitButtonEnabled: { backgroundColor: "#A78BFA", color: "#FFF" },
-  submitButtonDisabled: { backgroundColor: "#D1D5DB" },
-  submitText: { color: "#FFF", fontSize: 16, fontWeight: "600" },
+  submitButtonDisabled: { backgroundColor: colors.gray300 },
+  submitText: { color: colors.white, fontSize: 16, fontWeight: "600" },
   cancel: { marginTop: 12, alignItems: "center" },
-  cancelText: { color: "#6B7280" },
+  cancelText: { color: colors.textMuted },
+  loader: { marginTop: 16 },
 });
 
 export default ForgotPasswordScreen;

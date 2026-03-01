@@ -14,23 +14,21 @@ import {
   SafeAreaView,
   Animated,
   Dimensions,
+  ScrollView
 } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-// Switch to local backend for testing (change to false for production)
-const USE_LOCAL_BACKEND = false;
-const API_BASE_URL = USE_LOCAL_BACKEND 
-  ? `http://127.0.0.1:6000`  // Local backend
-  : `https://cognizen-x-backend.vercel.app`;  // Production backend
-const { width } = Dimensions.get("window");
+import { colors, shadow } from '../styles/theme';
+import { ui } from '../styles/ui';
+import { API_BASE_URL } from "../config/backend";
 
-// Back button icon
-const BACK_ICON = "←";
+const { width } = Dimensions.get("window");
 
 const LoginScreen = ({ navigation }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const emailRef = useRef(null);
   const passwordRef = useRef(null);
@@ -150,15 +148,8 @@ const LoginScreen = ({ navigation }) => {
           behavior={Platform.OS === "ios" ? "padding" : "height"}
           style={styles.keyboardAvoidingView}
         >
-          {/* Back Button */}
-          <TouchableOpacity 
-            style={styles.backButton}
-            onPress={() => navigation.navigate("Home")}
-          >
-            <Text style={styles.backButtonText}>{BACK_ICON}</Text>
-          </TouchableOpacity>
-
-          <Animated.View style={[
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={styles.scrollContent}>
+            <Animated.View style={[
             styles.container,
             { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
           ]}>
@@ -168,7 +159,7 @@ const LoginScreen = ({ navigation }) => {
               <Text style={styles.description}>Sign in to continue your journey</Text>
             </View>
 
-            <View style={styles.formContainer}>
+            <View style={ui.formCard}>
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Email Address</Text>
                 <View style={styles.inputWrapper}>
@@ -176,7 +167,7 @@ const LoginScreen = ({ navigation }) => {
                     ref={emailRef}
                     style={styles.input}
                     placeholder="Enter your email"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={colors.gray400}
                     value={email}
                     onChangeText={setEmail}
                     keyboardType="email-address"
@@ -192,23 +183,31 @@ const LoginScreen = ({ navigation }) => {
 
               <View style={styles.inputContainer}>
                 <Text style={styles.label}>Password</Text>
-                <View style={styles.inputWrapper}>
+                <View style={[styles.inputWrapper, styles.passwordInputWrapper]}>
                   <TextInput
                     ref={passwordRef}
-                    style={styles.input}
+                    style={[styles.input, styles.passwordInput]}
                     placeholder="Enter your password"
-                    placeholderTextColor="#9CA3AF"
+                    placeholderTextColor={colors.gray400}
                     value={password}
                     onChangeText={setPassword}
-                    secureTextEntry
+                    secureTextEntry={!passwordVisible}
                     returnKeyType="go"
                     onSubmitEditing={handleLogin}
                   />
+                  <TouchableOpacity
+                    onPress={() => setPasswordVisible((v) => !v)}
+                    style={styles.passwordToggle}
+                    accessibilityRole="button"
+                    accessibilityLabel={passwordVisible ? 'Hide password' : 'Show password'}
+                  >
+                    <Text style={styles.passwordToggleText}>{passwordVisible ? 'Hide' : 'Show'}</Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
               {loading ? (
-                <ActivityIndicator size="large" color="#A78BFA" style={styles.loader} />
+                <ActivityIndicator size="large" color={colors.brand} style={styles.loader} />
               ) : (
                 <Animated.View style={{ transform: [{ scale: buttonScale }] }}>
                   <TouchableOpacity 
@@ -218,7 +217,7 @@ const LoginScreen = ({ navigation }) => {
                     onPressIn={handlePressIn}
                     onPressOut={handlePressOut}
                   >
-                    <View style={styles.buttonGradient}>
+                    <View style={ui.brandFill}>
                       <Text style={styles.loginButtonText}>Sign In</Text>
                     </View>
                   </TouchableOpacity>
@@ -245,6 +244,9 @@ const LoginScreen = ({ navigation }) => {
               </Text>
             </View>
           </Animated.View>
+
+          </ScrollView>
+          
         </KeyboardAvoidingView>
       </TouchableWithoutFeedback>
     </SafeAreaView>
@@ -254,7 +256,7 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#F5F3FF",
+    backgroundColor: colors.backgroundTint,
   },
   backgroundGradient: {
     position: 'absolute',
@@ -262,7 +264,7 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: '100%',
-    backgroundColor: '#F5F3FF',
+    backgroundColor: colors.backgroundTint,
     opacity: 0.8,
   },
   keyboardAvoidingView: {
@@ -272,16 +274,8 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 24,
   },
-  backButton: {
-    position: 'absolute',
-    top: 16,
-    left: 16, 
-    zIndex: 10,
-    padding: 8,
-  },
-  backButtonText: {
-    fontSize: 28,
-    color: "#4B5563",
+  scrollContent: {
+    flexGrow: 1,
   },
   headerContainer: {
     marginTop: 60,
@@ -291,31 +285,21 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 36,
     fontWeight: "700",
-    color: "#4B5563",
+    color: colors.textSecondary,
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
     fontSize: 24,
     fontWeight: "600",
-    color: "#6B7280",
+    color: colors.textMuted,
     marginBottom: 8,
     textAlign: "center",
   },
   description: {
     fontSize: 16,
-    color: "#9CA3AF",
+    color: colors.gray400,
     textAlign: "center",
-  },
-  formContainer: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 20,
-    padding: 24,
-    shadowColor: "#A78BFA",
-    shadowOpacity: 0.1,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 4,
   },
   inputContainer: {
     marginBottom: 20,
@@ -323,42 +307,53 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#4B5563",
+    color: colors.textSecondary,
     marginBottom: 8,
   },
   inputWrapper: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    backgroundColor: "#FAFAFA",
+    borderColor: colors.gray200,
+    backgroundColor: colors.gray50,
     overflow: 'hidden',
+  },
+
+  passwordInputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+
+  passwordInput: {
+    flex: 1,
+  },
+
+  passwordToggle: {
+    paddingHorizontal: 16,
+    height: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  passwordToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.brand,
   },
   input: {
     height: 56,
     paddingHorizontal: 16,
     fontSize: 16,
-    color: "#4B5563",
+    color: colors.textSecondary,
   },
   loginButton: {
     height: 56,
     borderRadius: 14,
     marginTop: 12,
     overflow: 'hidden',
-    shadowColor: "#A78BFA",
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
-  },
-  buttonGradient: {
-    height: '100%',
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#A78BFA',
+    ...shadow({ color: colors.brand, offsetHeight: 4, opacity: 0.3, radius: 10, elevation: 6 }),
   },
   loginButtonText: {
-    color: "#FFFFFF",
+    color: colors.white,
     fontSize: 18,
     fontWeight: "600",
   },
@@ -367,7 +362,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   forgotPasswordText: {
-    color: "#A78BFA",
+    color: colors.brand,
     fontSize: 14,
   },
   footer: {
@@ -376,10 +371,10 @@ const styles = StyleSheet.create({
   },
   signupPrompt: {
     fontSize: 16,
-    color: "#6B7280",
+    color: colors.textMuted,
   },
   signupLink: {
-    color: "#A78BFA",
+    color: colors.brand,
     fontWeight: "600",
   },
   loader: {

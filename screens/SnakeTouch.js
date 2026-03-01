@@ -12,6 +12,8 @@ import {
   Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { colors, radii, shadow, spacing } from '../styles/theme';
+import { ui } from '../styles/ui';
 
 const { width, height } = Dimensions.get('window');
 
@@ -377,15 +379,15 @@ const SnakeTouch = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#F8FAFC" barStyle="dark-content" />
+      <StatusBar backgroundColor={colors.slate50} barStyle="dark-content" />
 
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+      <View style={[ui.headerRow, styles.header]}>
+        <TouchableOpacity onPress={handleBackPress} style={ui.iconButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Snake Touch</Text>
-        <View style={styles.emptyBox} />
+        <View style={ui.headerSpacer} />
       </View>
 
       {/* Game Stats (simplified) */}
@@ -471,57 +473,45 @@ const SnakeTouch = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.slate100,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-    backgroundColor: "#F1F5F9",
-  },
-  backButton: {
-    padding: 8,
+    backgroundColor: colors.slate100,
   },
   backIcon: {
     fontSize: 24,
-    color: "#64748B",
+    color: colors.slate500,
     fontWeight: "600",
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "600",
-    color: "#475569",
-  },
-  emptyBox: {
-    width: 40,
+    color: colors.slate600,
   },
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingVertical: 15,
-    backgroundColor: "#E2E8F0",
+    backgroundColor: colors.slate200,
   },
   statItem: {
     alignItems: "center",
   },
   statLabel: {
     fontSize: 11,
-    color: "#64748B",
+    color: colors.slate500,
     fontWeight: "500",
   },
   statValue: {
     fontSize: 16,
-    color: "#334155",
+    color: colors.slate700,
     fontWeight: "600",
     marginTop: 2,
   },
   gameContainer: {
     flex: 1,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: colors.slate100,
     padding: BOARD_PADDING,
   },
   startScreen: {
@@ -536,7 +526,7 @@ const styles = StyleSheet.create({
   gameTitle: {
     fontSize: 28,
     fontWeight: "500",
-    color: "#475569",
+    color: colors.slate600,
     marginBottom: 20,
   },
   subtleInstructions: {
@@ -544,23 +534,19 @@ const styles = StyleSheet.create({
   },
   instructionText: {
     fontSize: 14,
-    color: "#94A3B8",
+    color: colors.slate400,
     textAlign: "center",
     fontStyle: "italic",
   },
   startButton: {
-    backgroundColor: "#64748B",
+    backgroundColor: colors.slate500,
     paddingHorizontal: 32,
     paddingVertical: 12,
     borderRadius: 24,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadow({ offsetHeight: 2, opacity: 0.1, radius: 4, elevation: 2 }),
   },
   startButtonText: {
-    color: "#FFFFFF",
+    color: colors.white,
     fontSize: 16,
     fontWeight: "500",
   },
@@ -569,18 +555,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     marginTop: 20,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
   },
   controlLabel: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#475569",
+    color: colors.slate600,
     marginRight: 12,
     minWidth: 50,
   },
   levelButtons: {
     flexDirection: "row",
-    backgroundColor: "#E2E8F0",
+    backgroundColor: colors.slate200,
     borderRadius: 20,
     padding: 4,
   },
@@ -591,18 +577,18 @@ const styles = StyleSheet.create({
     marginHorizontal: 2,
   },
   levelButtonActive: {
-    backgroundColor: "#64748B",
+    backgroundColor: colors.slate500,
   },
   levelButtonText: {
     fontSize: 12,
     fontWeight: "500",
-    color: "#64748B",
+    color: colors.slate500,
   },
   levelButtonTextActive: {
-    color: "#FFFFFF",
+    color: colors.white,
   },
   wallToggle: {
-    backgroundColor: "#E2E8F0",
+    backgroundColor: colors.slate200,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 20,
@@ -610,15 +596,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   wallToggleActive: {
-    backgroundColor: "#64748B",
+    backgroundColor: colors.slate500,
   },
   wallToggleText: {
     fontSize: 12,
     fontWeight: "600",
-    color: "#64748B",
+    color: colors.slate500,
   },
   wallToggleTextActive: {
-    color: "#FFFFFF",
+    color: colors.white,
   },
   gameOverScreen: {
     flex: 1,
@@ -632,17 +618,17 @@ const styles = StyleSheet.create({
   gameOverTitle: {
     fontSize: 24,
     fontWeight: "500",
-    color: "#475569",
+    color: colors.slate600,
     marginBottom: 12,
   },
   finalScore: {
     fontSize: 16,
-    color: "#64748B",
+    color: colors.slate500,
     marginBottom: 8,
   },
   newHighScore: {
     fontSize: 14,
-    color: "#F59E0B",
+    color: colors.warning,
     fontWeight: "500",
     marginBottom: 32,
   },
@@ -651,24 +637,24 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   playAgainButton: {
-    backgroundColor: "#64748B",
+    backgroundColor: colors.slate500,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
   },
   playAgainButtonText: {
-    color: "#FFFFFF",
+    color: colors.white,
     fontSize: 14,
     fontWeight: "500",
   },
   menuButton: {
-    backgroundColor: "#94A3B8",
+    backgroundColor: colors.slate400,
     paddingHorizontal: 20,
     paddingVertical: 10,
     borderRadius: 20,
   },
   menuButtonText: {
-    color: "#FFFFFF",
+    color: colors.white,
     fontSize: 14,
     fontWeight: "500",
   },
@@ -679,23 +665,19 @@ const styles = StyleSheet.create({
   gameBoard: {
     width: ACTUAL_BOARD_WIDTH,
     height: ACTUAL_BOARD_HEIGHT,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 12,
+    backgroundColor: colors.slate50,
+    borderRadius: radii.md,
     position: "relative",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: colors.slate200,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
+    ...shadow({ offsetHeight: 2, opacity: 0.05, radius: 4, elevation: 1 }),
   },
   gameCell: {
     position: "absolute",
     width: GRID_SIZE,
     height: GRID_SIZE,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: colors.surface,
     borderRightWidth: StyleSheet.hairlineWidth,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderColor: "#EEF2F7",
@@ -704,21 +686,17 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: GRID_SIZE,
     height: GRID_SIZE,
-    backgroundColor: "#475569",
+    backgroundColor: colors.slate600,
     borderRadius: GRID_SIZE / 2,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#334155",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    borderColor: colors.slate700,
+    ...shadow({ offsetHeight: 1, opacity: 0.2, radius: 2, elevation: 2 }),
   },
   snakeHeadText: {
     fontSize: 16,
-    color: "#FFFFFF",
+    color: colors.white,
     fontWeight: "bold",
     textShadowColor: "rgba(0, 0, 0, 0.3)",
     textShadowOffset: { width: 1, height: 1 },
@@ -728,16 +706,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: GRID_SIZE,
     height: GRID_SIZE,
-    backgroundColor: "#64748B",
+    backgroundColor: colors.slate500,
     borderRadius: GRID_SIZE / 2,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#475569",
+    borderColor: colors.slate600,
   },
   snakeBodyText: {
     fontSize: 10,
-    color: "#FFFFFF",
+    color: colors.white,
     textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 0.5, height: 0.5 },
     textShadowRadius: 1,
@@ -746,16 +724,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     width: GRID_SIZE,
     height: GRID_SIZE,
-    backgroundColor: "#94A3B8",
+    backgroundColor: colors.slate400,
     borderRadius: GRID_SIZE / 2,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#64748B",
+    borderColor: colors.slate500,
   },
   snakeTailText: {
     fontSize: 8,
-    color: "#FFFFFF",
+    color: colors.white,
     textShadowColor: "rgba(0, 0, 0, 0.2)",
     textShadowOffset: { width: 0.5, height: 0.5 },
     textShadowRadius: 1,
