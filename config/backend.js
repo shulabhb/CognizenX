@@ -1,7 +1,7 @@
 // Central backend configuration used across screens.
 // Toggle USE_LOCAL_BACKEND for local testing.
 
-export const USE_LOCAL_BACKEND = true;
+export const USE_LOCAL_BACKEND = false;
 
 export const API_BASE_URL = USE_LOCAL_BACKEND
   ? "http://127.0.0.1:6000"
