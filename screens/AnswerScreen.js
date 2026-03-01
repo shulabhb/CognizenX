@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, SafeAreaView, StatusBar, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, SafeAreaView, StatusBar, ScrollView } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -12,6 +13,7 @@ const AnswerScreen = ({ route, navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState('');
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (questions[currentIndex] && selectedAnswers[currentIndex]) {
@@ -183,7 +185,9 @@ const AnswerScreen = ({ route, navigation }) => {
             </TouchableOpacity>
           </>
         ) : (
-          <Text style={styles.noQuestionsText}>No questions available.</Text>
+          <View style={styles.emptyState}>
+            <Text style={styles.noQuestionsText}>No questions available.</Text>
+          </View>
         )}
       </View>
     </SafeAreaView>

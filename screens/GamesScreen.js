@@ -8,7 +8,6 @@ import {
   Dimensions,
   useWindowDimensions,
   StatusBar,
-  SafeAreaView,
   TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -27,6 +26,7 @@ const GamesScreen = () => {
   const menuWidth = getMenuWidth(screenWidth);
 
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(true); // You can add login check logic here
   

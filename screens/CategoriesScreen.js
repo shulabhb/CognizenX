@@ -11,7 +11,6 @@ import {
   Dimensions,
   useWindowDimensions,
   ActivityIndicator,
-  SafeAreaView,
   TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -46,6 +45,7 @@ const CategoriesScreen = () => {
   const { width: screenWidth } = useWindowDimensions();
   const menuWidth = getMenuWidth(screenWidth);
   const navigation = useNavigation();
+  const insets = useSafeAreaInsets();
   const [scaleValue] = useState(new Animated.Value(1));
   const [userId, setUserId] = useState(null);
   const [loading, setLoading] = useState(true);
