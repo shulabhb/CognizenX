@@ -52,6 +52,9 @@ target 'BasicApp' do
         # Use C++20 for React Native 0.76.9 compatibility
         config.build_settings['CLANG_CXX_LANGUAGE_STANDARD'] = 'c++20'
         config.build_settings['CLANG_CXX_LIBRARY'] = 'libc++'
+        
+        # Relax strict modularity checks to prevent build failures
+        config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
       end
     end
   end

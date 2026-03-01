@@ -1515,6 +1515,8 @@ PODS:
     - React-utils (= 0.76.9)
   - RNCAsyncStorage (2.2.0):
     - React-Core
+  - RNCPicker (2.11.4):
+    - React-Core
   - RNGestureHandler (2.28.0):
     - DoubleConversion
     - glog
@@ -1536,7 +1538,73 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNReanimated (3.6.1):
+  - RNReanimated (3.16.7):
+    - DoubleConversion
+    - glog
+    - RCT-Folly (= 2024.10.14.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - RNReanimated/reanimated (= 3.16.7)
+    - RNReanimated/worklets (= 3.16.7)
+    - Yoga
+  - RNReanimated/reanimated (3.16.7):
+    - DoubleConversion
+    - glog
+    - RCT-Folly (= 2024.10.14.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - RNReanimated/reanimated/apple (= 3.16.7)
+    - Yoga
+  - RNReanimated/reanimated/apple (3.16.7):
+    - DoubleConversion
+    - glog
+    - RCT-Folly (= 2024.10.14.00)
+    - RCTRequired
+    - RCTTypeSafety
+    - React-Core
+    - React-debug
+    - React-Fabric
+    - React-featureflags
+    - React-graphics
+    - React-ImageManager
+    - React-jsi
+    - React-NativeModulesApple
+    - React-RCTFabric
+    - React-rendererdebug
+    - React-utils
+    - ReactCodegen
+    - ReactCommon/turbomodule/bridging
+    - ReactCommon/turbomodule/core
+    - Yoga
+  - RNReanimated/worklets (3.16.7):
     - DoubleConversion
     - glog
     - RCT-Folly (= 2024.10.14.00)
@@ -1670,6 +1738,7 @@ DEPENDENCIES:
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
+  - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
@@ -1807,6 +1876,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/react-native/ReactCommon"
   RNCAsyncStorage:
     :path: "../node_modules/@react-native-async-storage/async-storage"
+  RNCPicker:
+    :path: "../node_modules/@react-native-picker/picker"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   RNReanimated:
@@ -1882,13 +1953,14 @@ SPEC CHECKSUMS:
   ReactCodegen: 25c2c1bed6e2c89daaa9e61c40e8680803df3c8f
   ReactCommon: 9cd9f89d1600b392c3a94552afc34def5fe54d02
   RNCAsyncStorage: b44e8a4e798c3e1f56bffccd0f591f674fb9198f
+  RNCPicker: 7de564dce1f90b53e386a24001aafc3578233dfe
   RNGestureHandler: 310d1478b4822085f0b3e59d05b5c26abb07d442
-  RNReanimated: 79fb58c18cb68c3caa63be2e9c8489fccc5e1e94
+  RNReanimated: b4130128f9ea5f1d6005fe3f5b6f94b7112d2613
   RNScreens: e78def16e202f067fccc33888e55dedfdf8ef583
   RNVectorIcons: f91447016673867c2131f3d510437cb614965446
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
   Yoga: feb4910aba9742cfedc059e2b2902e22ffe9954a
 
-PODFILE CHECKSUM: 15cc0a9aa710465e04e0a553d1909eaa380a3678
+PODFILE CHECKSUM: 513c8b0d6af711ec816fd2b5a5ecea0b1da3e099
 
 COCOAPODS: 1.16.2

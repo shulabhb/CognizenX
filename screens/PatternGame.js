@@ -10,6 +10,8 @@ import {
   Dimensions,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { colors, radii, shadow, spacing } from '../styles/theme';
+import { ui } from '../styles/ui';
 
 const { width, height } = Dimensions.get('window');
 
@@ -25,11 +27,11 @@ const PatternGame = () => {
 
   // Simple, dementia-friendly patterns
   const patternOptions = [
-    { id: 1, symbol: '🔴', color: '#EF4444', name: 'Red Circle' },
-    { id: 2, symbol: '🔵', color: '#3B82F6', name: 'Blue Circle' },
-    { id: 3, symbol: '🟢', color: '#10B981', name: 'Green Circle' },
-    { id: 4, symbol: '🟡', color: '#F59E0B', name: 'Yellow Circle' },
-    { id: 5, symbol: '🟣', color: '#8B5CF6', name: 'Purple Circle' },
+    { id: 1, symbol: '🔴', color: colors.danger, name: 'Red Circle' },
+    { id: 2, symbol: '🔵', color: colors.blue500, name: 'Blue Circle' },
+    { id: 3, symbol: '🟢', color: colors.success, name: 'Green Circle' },
+    { id: 4, symbol: '🟡', color: colors.warning, name: 'Yellow Circle' },
+    { id: 5, symbol: '🟣', color: colors.brandDark, name: 'Purple Circle' },
     { id: 6, symbol: '🟠', color: '#F97316', name: 'Orange Circle' },
   ];
 
@@ -192,15 +194,15 @@ const PatternGame = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar backgroundColor="#10B981" barStyle="light-content" />
+      <StatusBar backgroundColor={colors.success} barStyle="light-content" />
       
       {/* Header */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleBackPress} style={styles.backButton}>
+      <View style={[ui.headerRow, styles.header]}>
+        <TouchableOpacity onPress={handleBackPress} style={ui.iconButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pattern Recognition</Text>
-        <View style={styles.emptyBox} />
+        <Text style={ui.headerTitleLight}>Pattern Recognition</Text>
+        <View style={ui.headerSpacer} />
       </View>
 
       {/* Game Stats */}
@@ -229,8 +231,8 @@ const PatternGame = () => {
               Watch the pattern of colored circles, then tap them in the same order.
               Complete all 10 levels to master the game!
             </Text>
-            <TouchableOpacity style={styles.startButton} onPress={initializeGame}>
-              <Text style={styles.startButtonText}>Start Game</Text>
+            <TouchableOpacity style={[ui.buttonPillLg, styles.startButton]} onPress={initializeGame}>
+              <Text style={ui.buttonPillLgText}>Start Game</Text>
             </TouchableOpacity>
           </View>
         ) : (
@@ -271,58 +273,41 @@ const PatternGame = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#10B981",
+    backgroundColor: colors.success,
   },
   header: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 15,
-    backgroundColor: "#10B981",
-  },
-  backButton: {
-    padding: 8,
+    backgroundColor: colors.success,
   },
   backIcon: {
     fontSize: 24,
-    color: "#FFFFFF",
+    color: colors.white,
     fontWeight: "600",
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  emptyBox: {
-    width: 40,
   },
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-around",
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
     paddingVertical: 15,
-    backgroundColor: "#059669",
+    backgroundColor: colors.successDark,
   },
   statItem: {
     alignItems: "center",
   },
   statLabel: {
     fontSize: 12,
-    color: "#D1FAE5",
+    color: colors.successTextLight,
     fontWeight: "500",
   },
   statValue: {
     fontSize: 18,
-    color: "#FFFFFF",
+    color: colors.white,
     fontWeight: "700",
     marginTop: 2,
   },
   gameContainer: {
     flex: 1,
-    backgroundColor: "#F0FDF4",
-    padding: 20,
+    backgroundColor: colors.successBg,
+    padding: spacing.xl,
   },
   startScreen: {
     flex: 1,
@@ -336,53 +321,36 @@ const styles = StyleSheet.create({
   gameTitle: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#065F46",
+    color: colors.successTextDark,
     marginBottom: 16,
   },
   gameDescription: {
     fontSize: 16,
-    color: "#64748B",
+    color: colors.slate500,
     textAlign: "center",
     lineHeight: 24,
     marginBottom: 30,
-    paddingHorizontal: 20,
+    paddingHorizontal: spacing.xl,
   },
   startButton: {
-    backgroundColor: "#10B981",
-    paddingHorizontal: 32,
-    paddingVertical: 16,
-    borderRadius: 25,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  startButtonText: {
-    color: "#FFFFFF",
-    fontSize: 18,
-    fontWeight: "600",
+    backgroundColor: colors.success,
   },
   gameBoard: {
     flex: 1,
   },
   patternDisplay: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
     marginBottom: 20,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadow({ offsetHeight: 2, opacity: 0.1, radius: 4, elevation: 2 }),
     minHeight: 120, // Ensure enough space for wrapping
   },
   patternTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#065F46",
+    color: colors.successTextDark,
     marginBottom: 16,
   },
   patternSequence: {
@@ -398,33 +366,25 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    ...shadow({ offsetHeight: 2, opacity: 0.2, radius: 4, elevation: 3 }),
     margin: 5, // Add some margin for better spacing when wrapping
   },
   patternSymbol: {
     fontSize: 20,
   },
   userSequenceContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 20,
+    backgroundColor: colors.surface,
+    borderRadius: radii.xl,
+    padding: spacing.xl,
     marginBottom: 20,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    ...shadow({ offsetHeight: 2, opacity: 0.1, radius: 4, elevation: 2 }),
     minHeight: 100, // Ensure enough space for wrapping user sequence
   },
   userSequenceTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#065F46",
+    color: colors.successTextDark,
     marginBottom: 16,
   },
   userSequence: {
@@ -440,22 +400,18 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 3,
+    ...shadow({ offsetHeight: 2, opacity: 0.2, radius: 4, elevation: 3 }),
     margin: 5, // Add margin for better spacing when wrapping
   },
   userSequenceItemEmpty: {
     width: 50,
     height: 50,
     borderRadius: 25,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: colors.gray200,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
-    borderColor: "#D1D5DB",
+    borderColor: colors.gray300,
     borderStyle: "dashed",
     margin: 5, // Add margin for consistency with other items
   },
@@ -469,7 +425,7 @@ const styles = StyleSheet.create({
   },
   instructionsText: {
     fontSize: 16,
-    color: "#065F46",
+    color: colors.successTextDark,
     textAlign: "center",
     marginBottom: 20,
     fontWeight: "500",
@@ -486,11 +442,7 @@ const styles = StyleSheet.create({
     borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 8,
-    elevation: 4,
+    ...shadow({ offsetHeight: 4, opacity: 0.2, radius: 8, elevation: 4 }),
   },
   optionSymbol: {
     fontSize: 28,
