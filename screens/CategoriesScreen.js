@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   TouchableWithoutFeedback
 } from 'react-native';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
