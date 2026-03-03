@@ -134,7 +134,13 @@ const AnswerScreen = ({ route, navigation }) => {
       
       <View style={styles.container}>
         {questions[currentIndex] ? (
-          <>
+          <ScrollView
+            style={styles.scroll}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled
+          >
             <View style={ui.card}>
               <Text style={styles.questionCounter}>Question {currentIndex + 1} of {questions.length}</Text>
               <Text style={styles.questionTitle}>Question:</Text>
@@ -168,6 +174,7 @@ const AnswerScreen = ({ route, navigation }) => {
                       contentContainerStyle={styles.descriptionScrollContent}
                       showsVerticalScrollIndicator
                       nestedScrollEnabled
+                      keyboardShouldPersistTaps="handled"
                     >
                       <Text style={styles.descriptionText}>{description}</Text>
                     </ScrollView>
@@ -181,7 +188,7 @@ const AnswerScreen = ({ route, navigation }) => {
                 {currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
               </Text>
             </TouchableOpacity>
-          </>
+          </ScrollView>
         ) : (
           <Text style={styles.noQuestionsText}>No questions available.</Text>
         )}
@@ -206,8 +213,14 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: spacing.lg,
     backgroundColor: colors.background,
-    justifyContent: 'center',
-    alignItems: 'center',
+    alignItems: 'stretch',
+  },
+  scroll: {
+    flex: 1,
+    width: '100%',
+  },
+  scrollContent: {
+    paddingBottom: spacing.xxl,
   },
   questionCounter: {
     fontSize: type.caption,

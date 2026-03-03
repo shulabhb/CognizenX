@@ -130,6 +130,13 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
             <Text style={styles.menuIcon}>🎮</Text>
             <Text style={styles.menuText}>Games</Text>
           </TouchableOpacity>
+
+          {isLoggedIn && (
+            <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Account"); closeMenu(); }}>
+              <Text style={styles.menuIcon}>👤</Text>
+              <Text style={styles.menuText}>Account</Text>
+            </TouchableOpacity>
+          )}
           
           {/* Account Actions */}
           {isLoggedIn && (

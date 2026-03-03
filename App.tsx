@@ -15,6 +15,7 @@ import SnakeTouch from "./screens/SnakeTouch";
 import PuzzlesGameScreen from "./screens/PuzzlesGameScreen";
 import MemoryMatchGame from "./screens/MemoryMatchGame";
 import PatternGame from "./screens/PatternGame";
+import AccountScreen from "./screens/AccountScreen";
 
 /*ting */
 const Stack = createStackNavigator();
@@ -68,6 +69,11 @@ const App = () => (
             <Stack.Screen name="Trivia" component={TriviaScreen} />
             <Stack.Screen name="AnswerScreen" component={AnswerScreen} />
             <Stack.Screen name="RandomQuestionsScreen" component={RandomQuestionsScreen} />
+            <Stack.Screen
+                name="Account"
+                component={AccountScreen}
+                options={{ headerShown: false }}
+            />
         </Stack.Navigator>
     </NavigationContainer>
 );

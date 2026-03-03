@@ -36,6 +36,9 @@ const TriviaScreen = ({ route }) => {
   const [selectedAnswers, setSelectedAnswers] = useState([]);
   const [selectedOption, setSelectedOption] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+  const questionStartRef = useRef(Date.now());
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -120,6 +123,7 @@ const TriviaScreen = ({ route }) => {
         const shuffledQuestions = allQuestions.sort(() => 0.5 - Math.random()).slice(0, 10);
 
         setQuestions(shuffledQuestions);
+        questionStartRef.current = Date.now();
         setLoading(false);
       } catch (error) {
         console.error('Error fetching questions:', error);
@@ -129,6 +133,42 @@ const TriviaScreen = ({ route }) => {
 
     fetchQuestions();
   }, [category, subDomain]);
+
+  useEffect(() => {
+    // Reset timer when moving to a new question
+    if (questions.length > 0) {
+      questionStartRef.current = Date.now();
+    }
+  }, [currentQuestionIndex, questions.length]);
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      const token = await AsyncStorage.getItem('sessionToken');
+      setIsLoggedIn(!!token);
+    };
+    checkLogin();
+  }, []);
+
+  const logTriviaAttempt = async ({ questionId, selectedAnswer, timeTakenMs }) => {
+    try {
+      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      if (!sessionToken) return;
+
+      await axios.post(
+        `${API_BASE_URL}/api/trivia/attempts`,
+        { questionId, selectedAnswer, timeTakenMs },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        }
+      );
+    } catch (error) {
+      // Do not block UX if tracking fails
+      console.error('Failed to log trivia attempt:', error?.response?.data || error?.message || error);
+    }
+  };
 
   const handleSelectAnswer = (option, index) => {
     const scaleDown = Animated.spring(buttonScale, {
@@ -147,7 +187,27 @@ const TriviaScreen = ({ route }) => {
     
     scaleDown.start(() => {
       setSelectedOption(index);
-      const updatedAnswers = [...selectedAnswers, { question: questions[currentQuestionIndex].question, answer: option }];
+      const currentQuestion = questions[currentQuestionIndex];
+      const questionId = currentQuestion?._id?.toString?.() || currentQuestion?._id;
+      const timeTakenMs = Math.max(0, Date.now() - questionStartRef.current);
+
+      if (questionId) {
+        logTriviaAttempt({
+          questionId,
+          selectedAnswer: option,
+          timeTakenMs,
+        });
+      }
+
+      const updatedAnswers = [
+        ...selectedAnswers,
+        {
+          questionId,
+          question: currentQuestion?.question,
+          answer: option,
+          timeTakenMs,
+        },
+      ];
       setSelectedAnswers(updatedAnswers);
       
       scaleUp.start();
@@ -176,7 +236,7 @@ const TriviaScreen = ({ route }) => {
         } else {
           // Navigate to the results/answer screen
           navigation.navigate('AnswerScreen', { 
-            selectedAnswers, 
+            selectedAnswers: updatedAnswers,
             questions,
             category: category,
             subDomain: subDomain
@@ -218,6 +278,7 @@ const TriviaScreen = ({ route }) => {
         isOpen={menuOpen}
         closeMenu={toggleMenu}
         menuAnimation={menuAnimation}
+        isLoggedIn={isLoggedIn}
         handleLogout={handleLogout}
       />
       

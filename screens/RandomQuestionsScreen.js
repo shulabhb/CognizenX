@@ -15,6 +15,7 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState([]);
   const questionsGeneratedRef = useRef(false); // Track if we've attempted generation
+  const questionStartRef = useRef(Date.now());
 
   
 
@@ -44,6 +45,30 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
       }
     });
   }, [categories, subDomain]);
+
+  useEffect(() => {
+    questionStartRef.current = Date.now();
+  }, [currentQuestionIndex]);
+
+  const logTriviaAttempt = async ({ questionId, selectedAnswer, timeTakenMs }) => {
+    try {
+      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      if (!sessionToken) return;
+
+      await axios.post(
+        `${API_BASE_URL}/api/trivia/attempts`,
+        { questionId, selectedAnswer, timeTakenMs },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        }
+      );
+    } catch (error) {
+      console.error('Failed to log trivia attempt:', error?.response?.data || error?.message || error);
+    }
+  };
 
   // Function to fetch random questions from your API
   const fetchRandomQuestions = async () => {
@@ -164,7 +189,18 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
 
 
   const handleSelectAnswer = (option) => {
-    const updatedAnswers = [...selectedAnswers, { question: questions[currentQuestionIndex], answer: option }];
+    const currentQuestion = questions[currentQuestionIndex];
+    const questionId = currentQuestion?._id?.toString?.() || currentQuestion?._id;
+    const timeTakenMs = Math.max(0, Date.now() - questionStartRef.current);
+
+    if (questionId) {
+      logTriviaAttempt({ questionId, selectedAnswer: option, timeTakenMs });
+    }
+
+    const updatedAnswers = [
+      ...selectedAnswers,
+      { questionId, question: currentQuestion, answer: option, timeTakenMs },
+    ];
     setSelectedAnswers(updatedAnswers);
 
     if (currentQuestionIndex < questions.length - 1) {
@@ -172,7 +208,7 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
     } else {
       // Pass category and subDomain for explanation caching
       navigation.navigate('AnswerScreen', { 
-        selectedAnswers, 
+        selectedAnswers: updatedAnswers,
         questions,
         category: categories[0] || categories.join(','),
         subDomain: subDomain
