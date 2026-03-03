@@ -49,7 +49,8 @@ const AccountScreen = () => {
     setProfileError(null);
     try {
       const sessionToken = await AsyncStorage.getItem('sessionToken');
-      if (!sessionToken) {
+      const trimmedToken = sessionToken?.trim();
+      if (!trimmedToken) {
         setProfile(null);
         setProfileError('Please log in to view your profile.');
         return;
@@ -57,14 +58,20 @@ const AccountScreen = () => {
 
       const res = await axios.get(`${API_BASE_URL}/api/auth/me`, {
         headers: {
-          Authorization: `Bearer ${sessionToken}`,
+          Authorization: `Bearer ${trimmedToken}`,
         },
       });
 
       setProfile(res.data?.user || null);
     } catch (e) {
       console.error('Failed to load profile:', e?.response?.data || e?.message || e);
-      setProfileError('Unable to load profile.');
+      if (e?.response?.status === 401) {
+        await AsyncStorage.removeItem('sessionToken');
+        setProfile(null);
+        setProfileError('Session expired. Please log in again.');
+      } else {
+        setProfileError('Unable to load profile.');
+      }
     } finally {
       setProfileLoading(false);
     }
@@ -75,7 +82,8 @@ const AccountScreen = () => {
     setMetricsError(null);
     try {
       const sessionToken = await AsyncStorage.getItem('sessionToken');
-      if (!sessionToken) {
+      const trimmedToken = sessionToken?.trim();
+      if (!trimmedToken) {
         setSeries([]);
         setMetricsError('Please log in to view performance.');
         return;
@@ -83,14 +91,20 @@ const AccountScreen = () => {
 
       const res = await axios.get(`${API_BASE_URL}/api/trivia/metrics/daily?days=${days}`, {
         headers: {
-          Authorization: `Bearer ${sessionToken}`,
+          Authorization: `Bearer ${trimmedToken}`,
         },
       });
 
       setSeries(res.data?.series || []);
     } catch (e) {
       console.error('Failed to load metrics:', e?.response?.data || e?.message || e);
-      setMetricsError('Unable to load performance.');
+      if (e?.response?.status === 401) {
+        await AsyncStorage.removeItem('sessionToken');
+        setSeries([]);
+        setMetricsError('Session expired. Please log in again.');
+      } else {
+        setMetricsError('Unable to load performance.');
+      }
     } finally {
       setMetricsLoading(false);
     }

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, SafeAreaView, StatusBar, ScrollView } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -12,6 +13,7 @@ const AnswerScreen = ({ route, navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState('');
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (questions[currentIndex] && selectedAnswers[currentIndex]) {
@@ -113,9 +115,12 @@ const AnswerScreen = ({ route, navigation }) => {
     }
   };
 
-  const isCorrect = questions[currentIndex] && 
-                   selectedAnswers[currentIndex] && 
-                   questions[currentIndex].correctAnswer === selectedAnswers[currentIndex].answer;
+  const isCorrect = (() => {
+    const question = questions[currentIndex];
+    const selected = selectedAnswers[currentIndex];
+    const correct = question?.correctAnswer ?? question?.correct_answer;
+    return !!question && !!selected && correct === selected.answer;
+  })();
 
   return (
     <SafeAreaView style={ui.screen}>
@@ -132,15 +137,16 @@ const AnswerScreen = ({ route, navigation }) => {
         </View>
       </View>
       
-      <View style={styles.container}>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: Math.max(insets.bottom, spacing.lg) },
+        ]}
+        showsVerticalScrollIndicator={false}
+      >
         {questions[currentIndex] ? (
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator
-            keyboardShouldPersistTaps="handled"
-            nestedScrollEnabled
-          >
+          <>
             <View style={ui.card}>
               <Text style={styles.questionCounter}>Question {currentIndex + 1} of {questions.length}</Text>
               <Text style={styles.questionTitle}>Question:</Text>
@@ -174,7 +180,6 @@ const AnswerScreen = ({ route, navigation }) => {
                       contentContainerStyle={styles.descriptionScrollContent}
                       showsVerticalScrollIndicator
                       nestedScrollEnabled
-                      keyboardShouldPersistTaps="handled"
                     >
                       <Text style={styles.descriptionText}>{description}</Text>
                     </ScrollView>
@@ -188,11 +193,13 @@ const AnswerScreen = ({ route, navigation }) => {
                 {currentIndex < questions.length - 1 ? 'Next Question' : 'Finish Quiz'}
               </Text>
             </TouchableOpacity>
-          </ScrollView>
+          </>
         ) : (
-          <Text style={styles.noQuestionsText}>No questions available.</Text>
+          <View style={styles.emptyState}>
+            <Text style={styles.noQuestionsText}>No questions available.</Text>
+          </View>
         )}
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -209,18 +216,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand,
     borderRadius: 3,
   },
-  container: {
+  scroll: {
     flex: 1,
+  },
+  scrollContent: {
     padding: spacing.lg,
     backgroundColor: colors.background,
     alignItems: 'stretch',
-  },
-  scroll: {
-    flex: 1,
-    width: '100%',
-  },
-  scrollContent: {
-    paddingBottom: spacing.xxl,
   },
   questionCounter: {
     fontSize: type.caption,

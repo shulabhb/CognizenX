@@ -53,7 +53,8 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
   const logTriviaAttempt = async ({ questionId, selectedAnswer, timeTakenMs }) => {
     try {
       const sessionToken = await AsyncStorage.getItem('sessionToken');
-      if (!sessionToken) return;
+      const trimmedToken = sessionToken?.trim();
+      if (!trimmedToken) return;
 
       await axios.post(
         `${API_BASE_URL}/api/trivia/attempts`,
@@ -61,11 +62,14 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
         {
           headers: {
             'Content-Type': 'application/json',
-            Authorization: `Bearer ${sessionToken}`,
+            Authorization: `Bearer ${trimmedToken}`,
           },
         }
       );
     } catch (error) {
+      if (error?.response?.status === 401) {
+        await AsyncStorage.removeItem('sessionToken');
+      }
       console.error('Failed to log trivia attempt:', error?.response?.data || error?.message || error);
     }
   };
@@ -195,6 +199,8 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
 
     if (questionId) {
       logTriviaAttempt({ questionId, selectedAnswer: option, timeTakenMs });
+    } else {
+      console.warn('[tracking] Missing questionId; attempt not logged');
     }
 
     const updatedAnswers = [
