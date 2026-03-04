@@ -36,6 +36,7 @@ const TriviaScreen = ({ route }) => {
   const [selectedAnswers, setSelectedAnswers] = useState([]);
   const [selectedOption, setSelectedOption] = useState(null);
   const [menuOpen, setMenuOpen] = useState(false);
+  const questionStartAtRef = useRef(Date.now());
   
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -130,6 +131,34 @@ const TriviaScreen = ({ route }) => {
     fetchQuestions();
   }, [category, subDomain]);
 
+  useEffect(() => {
+    questionStartAtRef.current = Date.now();
+  }, [currentQuestionIndex, questions.length]);
+
+  const recordAttempt = async ({ questionId, selectedAnswer, timeTakenMs }) => {
+    try {
+      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      if (!sessionToken) return;
+
+      await axios.post(
+        `${API_BASE_URL}/api/trivia/attempts`,
+        {
+          questionId,
+          selectedAnswer,
+          timeTakenMs,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${sessionToken}`,
+          },
+        }
+      );
+    } catch (e) {
+      // Intentionally silent: attempt logging shouldn't interrupt quiz UX.
+    }
+  };
+
   const handleSelectAnswer = (option, index) => {
     const scaleDown = Animated.spring(buttonScale, {
       toValue: 0.95,
@@ -147,8 +176,19 @@ const TriviaScreen = ({ route }) => {
     
     scaleDown.start(() => {
       setSelectedOption(index);
-      const updatedAnswers = [...selectedAnswers, { question: questions[currentQuestionIndex].question, answer: option }];
+      const currentQuestion = questions[currentQuestionIndex];
+      const updatedAnswers = [...selectedAnswers, { question: currentQuestion, answer: option }];
       setSelectedAnswers(updatedAnswers);
+
+      const questionId = currentQuestion?._id?.toString?.() || currentQuestion?._id;
+      const timeTakenMs = Math.max(0, Date.now() - (questionStartAtRef.current || Date.now()));
+      if (questionId) {
+        recordAttempt({
+          questionId,
+          selectedAnswer: option,
+          timeTakenMs,
+        });
+      }
       
       scaleUp.start();
       
@@ -176,7 +216,7 @@ const TriviaScreen = ({ route }) => {
         } else {
           // Navigate to the results/answer screen
           navigation.navigate('AnswerScreen', { 
-            selectedAnswers, 
+            selectedAnswers: updatedAnswers,
             questions,
             category: category,
             subDomain: subDomain

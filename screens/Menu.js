@@ -121,15 +121,17 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
             </TouchableOpacity>
           )}
           
-          <TouchableOpacity style={styles.menuItem} onPress={() => { Alert.alert("Coming Soon", "History feature will be available in the next update!"); closeMenu(); }}>
-            <Text style={styles.menuIcon}>🕒</Text>
-            <Text style={styles.menuText}>History</Text>
-          </TouchableOpacity>
-          
           <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Games"); closeMenu(); }}>
             <Text style={styles.menuIcon}>🎮</Text>
             <Text style={styles.menuText}>Games</Text>
           </TouchableOpacity>
+
+          {isLoggedIn && (
+            <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Account"); closeMenu(); }}>
+              <Text style={styles.menuIcon}>👤</Text>
+              <Text style={styles.menuText}>Account</Text>
+            </TouchableOpacity>
+          )}
           
           {/* Account Actions */}
           {isLoggedIn && (

@@ -14,36 +14,17 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
   const [loading, setLoading] = useState(true);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState([]);
-  const questionsGeneratedRef = useRef(false); // Track if we've attempted generation
+  const questionStartAtRef = useRef(Date.now());
 
   
 
   useEffect(() => {
-    // Reset generation flag when categories/subDomain change
-    questionsGeneratedRef.current = false;
-    
-    // First fetch existing questions
-    fetchRandomQuestions().then(() => {
-      // After fetching, check if we need to generate more
-      // Generate new questions if categories and subDomain are provided
-      if (categories && categories.length > 0 && subDomain && !questionsGeneratedRef.current) {
-        // Small delay to let state update
-        setTimeout(() => {
-          // Check questions count from state
-          setQuestions(currentQuestions => {
-            if (currentQuestions.length < 5 && !questionsGeneratedRef.current) {
-              console.log(`Only ${currentQuestions.length} questions available, generating more...`);
-              questionsGeneratedRef.current = true;
-              generateAndSaveGPTQuestions();
-            } else {
-              console.log(`${currentQuestions.length} questions available, skipping generation`);
-            }
-            return currentQuestions; // Don't change state
-          });
-        }, 1500);
-      }
-    });
+    fetchRandomQuestions();
   }, [categories, subDomain]);
+
+  useEffect(() => {
+    questionStartAtRef.current = Date.now();
+  }, [currentQuestionIndex, questions.length]);
 
   // Function to fetch random questions from your API
   const fetchRandomQuestions = async () => {
@@ -61,11 +42,6 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
       const fetchedQuestions = response.data.questions || [];
       setQuestions(fetchedQuestions);
       console.log(`Fetched ${fetchedQuestions.length} questions`);
-      
-      // If we have questions, don't generate new ones
-      if (fetchedQuestions.length > 0) {
-        console.log('Questions available, skipping generation');
-      }
     } catch (error) {
       console.error('Error fetching random questions:', error.response?.data || error.message);
       Alert.alert('Error', 'Failed to fetch questions.');
@@ -74,36 +50,17 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
     }
   };
 
-  // Function to generate and save questions using backend endpoint
-  const generateAndSaveGPTQuestions = async () => {
+  const recordAttempt = async ({ questionId, selectedAnswer, timeTakenMs }) => {
     try {
-      if (categories.length === 0) {
-        Alert.alert('No Categories Selected', 'Please select at least one category.');
-        return;
-      }
-
-      if (!subDomain) {
-        Alert.alert('No Subdomain', 'Subdomain is required to generate questions.');
-        return;
-      }
-
-      // Get session token for authentication
       const sessionToken = await AsyncStorage.getItem('sessionToken');
-      if (!sessionToken) {
-        Alert.alert('Authentication Required', 'Please log in to generate questions.');
-        return;
-      }
+      if (!sessionToken) return;
 
-      // Use the first category from the array
-      const category = categories[0] || categories.join(',');
-
-      // Call backend endpoint to generate questions
-      const response = await axios.post(
-        `${API_BASE_URL}/api/generate-questions`,
+      await axios.post(
+        `${API_BASE_URL}/api/trivia/attempts`,
         {
-          category: category,
-          subDomain: subDomain,
-          count: 10
+          questionId,
+          selectedAnswer,
+          timeTakenMs,
         },
         {
           headers: {
@@ -112,85 +69,36 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
           },
         }
       );
-
-      if (response.data.status === 'success') {
-        console.log(`✅ Generated ${response.data.questions?.length || 0} questions`);
-        // Questions are automatically saved by the backend
-        // Refresh the questions list to show newly generated questions
-        setTimeout(() => {
-          fetchRandomQuestions();
-        }, 1000); // Small delay to ensure questions are saved
-      } else {
-        Alert.alert('Error', response.data.message || 'Failed to generate questions.');
-      }
-    } catch (error) {
-      console.error('❌ Error generating questions:', error);
-      console.error('Error response:', error.response?.data);
-      
-      // Don't show alert if questions are already available from database
-      // The fetchRandomQuestions() call will show existing questions
-      const errorMessage = error.response?.data?.message || 
-                          error.response?.data?.error?.message ||
-                          error.response?.data?.error ||
-                          error.message || 
-                          'Failed to generate new questions. Showing existing questions.';
-      
-      // Log detailed error for debugging
-      console.log('Full error response:', error.response?.data);
-      console.log('Error details:', error.response?.data?.error);
-      
-      // Only show alert if we don't have questions to display
-      // Check current questions state, not the one from closure
-      const currentQuestions = questions.length;
-      if (currentQuestions === 0) {
-        // Check if it's an API key issue - show helpful message
-        if (errorMessage.includes('API key') || errorMessage.includes('invalid or missing')) {
-          Alert.alert(
-            'Question Generation Unavailable', 
-            'New questions cannot be generated at this time. Please use existing questions or contact support.',
-            [{ text: 'OK' }]
-          );
-        } else {
-          Alert.alert('Error Generating Questions', errorMessage);
-        }
-      } else {
-        // Silently fail if we have questions to show - better UX
-        console.log('⚠️ Question generation failed, but showing existing questions from database');
-        console.log('Error was:', errorMessage);
-      }
+    } catch (e) {
+      // Intentionally silent: attempt logging shouldn't interrupt quiz UX.
     }
   };
 
-
-
   const handleSelectAnswer = (option) => {
-    const updatedAnswers = [...selectedAnswers, { question: questions[currentQuestionIndex], answer: option }];
+    const currentQuestion = questions[currentQuestionIndex];
+    const questionId = currentQuestion?._id?.toString?.() || currentQuestion?._id;
+    const timeTakenMs = Math.max(0, Date.now() - (questionStartAtRef.current || Date.now()));
+
+    if (questionId) {
+      recordAttempt({
+        questionId,
+        selectedAnswer: option,
+        timeTakenMs,
+      });
+    }
+
+    const updatedAnswers = [...selectedAnswers, { question: currentQuestion, answer: option }];
     setSelectedAnswers(updatedAnswers);
 
     if (currentQuestionIndex < questions.length - 1) {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
-      // Pass category and subDomain for explanation caching
-      navigation.navigate('AnswerScreen', { 
-        selectedAnswers, 
+      navigation.navigate('AnswerScreen', {
+        selectedAnswers: updatedAnswers,
         questions,
         category: categories[0] || categories.join(','),
         subDomain: subDomain
       });
-    }
-  };
-
-  const saveQuestionsToDatabase = async (questions) => {
-    try {
-      const response = await axios.post('https://cognizen-x-backend.vercel.app/api/save-questions', { questions });
-      if (response.status === 200) {
-        console.log('Questions successfully saved to the database');
-      } else {
-        console.log('Failed to save questions to the database');
-      }
-    } catch (error) {
-      console.error('Error saving questions to the database:', error);
-      Alert.alert('Error', 'Failed to save questions to the database.');
     }
   };
 
