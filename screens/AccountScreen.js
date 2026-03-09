@@ -2,6 +2,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Pressable,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +20,10 @@ import { ui } from "../styles/ui";
 
 const TAB_PROFILE = "profile";
 const TAB_PERFORMANCE = "performance";
+
+const CHART_HEIGHT = 120;
+const TREND_STROKE = 2;
+const TREND_DOT = 6;
 
 function formatSecondsFromMs(ms) {
   if (ms == null || Number.isNaN(Number(ms))) return "—";
@@ -77,6 +82,8 @@ const AccountScreen = ({ navigation }) => {
   const [metricsDays, setMetricsDays] = useState(14);
   const [dailySeries, setDailySeries] = useState([]);
   const [isLoggedIn, setIsLoggedIn] = useState(true);
+  const [chartWidth, setChartWidth] = useState(0);
+  const [trendTooltip, setTrendTooltip] = useState(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -246,6 +253,114 @@ const AccountScreen = ({ navigation }) => {
     const trendColor = trendIsUp ? colors.successDark : colors.dangerDark;
     const trendText = `${trendIsUp ? "+" : ""}${computed.deltaAccuracy.toFixed(1)}%`;
 
+    const trendLineColor = colors.brandDark;
+    const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
+    const points = (() => {
+      const n = dailySeries.length;
+      if (!chartWidth || !n) return [];
+      const step = chartWidth / n;
+      return dailySeries.map((d, idx) => {
+        const total = d.totalAttempts || 0;
+        if (!total) return null;
+        const rate = Math.min(1, Math.max(0, (d.correctCount || 0) / total));
+        const x = step * idx + step / 2;
+        const y = CHART_HEIGHT - rate * CHART_HEIGHT;
+        return {
+          idx,
+          date: d.date,
+          x,
+          y,
+          rate,
+          totalAttempts: total,
+          correctCount: d.correctCount || 0,
+          incorrectCount: d.incorrectCount || 0,
+        };
+      });
+    })();
+
+    const trendSegments = [];
+    let prev = null;
+    let prevIdx = null;
+    for (let i = 0; i < points.length; i += 1) {
+      const p = points[i];
+      if (!p) continue;
+
+      if (prev && prevIdx != null) {
+        const gapDays = i - prevIdx;
+        const dx = p.x - prev.x;
+        const dy = p.y - prev.y;
+        const length = Math.max(1, Math.sqrt(dx * dx + dy * dy));
+        const angle = Math.atan2(dy, dx);
+        const midX = (prev.x + p.x) / 2;
+        const midY = (prev.y + p.y) / 2;
+        trendSegments.push(
+          <View
+            key={`seg-${prevIdx}-${i}`}
+            style={[
+              styles.trendSegment,
+              {
+                backgroundColor: trendLineColor,
+                opacity: gapDays > 1 ? 0.45 : 1,
+                width: length,
+                height: TREND_STROKE,
+                left: midX - length / 2,
+                top: midY - TREND_STROKE / 2,
+                transform: [{ rotateZ: `${angle}rad` }],
+              },
+            ]}
+          />
+        );
+      }
+
+      prev = p;
+      prevIdx = i;
+    }
+
+    const trendDots = points
+      .map((p) => {
+        if (!p) return null;
+        const isSelected = trendTooltip?.date === p.date;
+        return (
+          <Pressable
+            key={`dot-${p.date}`}
+            delayLongPress={180}
+            onLongPress={() => setTrendTooltip(p)}
+            onPressOut={() => setTrendTooltip(null)}
+            hitSlop={12}
+            style={[
+              styles.trendDot,
+              {
+                backgroundColor: trendLineColor,
+                width: TREND_DOT,
+                height: TREND_DOT,
+                borderRadius: TREND_DOT / 2,
+                left: p.x - TREND_DOT / 2,
+                top: p.y - TREND_DOT / 2,
+                borderColor: isSelected ? colors.slate800 : colors.surface,
+                borderWidth: isSelected ? 2 : 1,
+              },
+            ]}
+          />
+        );
+      })
+      .filter(Boolean);
+
+    const tooltip = (() => {
+      if (!trendTooltip || !chartWidth) return null;
+      const TOOLTIP_W = 170;
+      const TOOLTIP_H = 68;
+      const left = clamp(trendTooltip.x - TOOLTIP_W / 2, 0, chartWidth - TOOLTIP_W);
+      const top = clamp(trendTooltip.y - TOOLTIP_H - 10, 0, CHART_HEIGHT - TOOLTIP_H);
+      const ratePct = (trendTooltip.rate * 100).toFixed(1);
+      return (
+        <View pointerEvents="none" style={[styles.tooltip, { width: TOOLTIP_W, left, top }]}>
+          <Text style={styles.tooltipTextStrong}>{ratePct}% correct</Text>
+          <Text style={styles.tooltipText}>Correct: {trendTooltip.correctCount}</Text>
+          <Text style={styles.tooltipText}>Incorrect: {trendTooltip.incorrectCount}</Text>
+        </View>
+      );
+    })();
+
     return (
       <>
         <View style={ui.sectionCard}>
@@ -298,26 +413,53 @@ const AccountScreen = ({ navigation }) => {
             </View>
           ) : (
             <View style={styles.chartWrap}>
-              {dailySeries.map((d, idx) => {
-                const total = d.totalAttempts || 0;
-                const scaledHeight = maxTotal ? Math.max(2, Math.round((total / maxTotal) * 120)) : 2;
-                const correctHeight = total ? Math.round((d.correctCount / total) * scaledHeight) : 0;
-                const incorrectHeight = Math.max(0, scaledHeight - correctHeight);
+              <View
+                style={styles.chartArea}
+                onLayout={(e) => setChartWidth(e.nativeEvent.layout.width)}
+              >
+                {dailySeries.map((d, idx) => {
+                  const total = d.totalAttempts || 0;
+                  const scaledHeight = maxTotal
+                    ? Math.max(2, Math.round((total / maxTotal) * CHART_HEIGHT))
+                    : 2;
+                  const correctHeight = total ? Math.round((d.correctCount / total) * scaledHeight) : 0;
+                  const incorrectHeight = Math.max(0, scaledHeight - correctHeight);
 
-                const showTick = idx === 0 || idx === Math.floor(dailySeries.length / 2) || idx === dailySeries.length - 1;
-                const tickLabel = showTick ? d.date.slice(5) : "";
-
-                return (
-                  <View key={d.date} style={styles.chartCol}>
-                    <View style={[styles.bar, { height: scaledHeight }]}
-                    >
-                      <View style={[styles.barIncorrect, { height: incorrectHeight }]} />
-                      <View style={[styles.barCorrect, { height: correctHeight }]} />
+                  return (
+                    <View key={d.date} style={styles.chartCol}>
+                      <View style={[styles.bar, { height: scaledHeight }]}>
+                        <View style={[styles.barIncorrect, { height: incorrectHeight }]} />
+                        <View style={[styles.barCorrect, { height: correctHeight }]} />
+                      </View>
                     </View>
-                    <Text style={styles.tickLabel}>{tickLabel}</Text>
+                  );
+                })}
+
+                {chartWidth > 0 ? (
+                  <View pointerEvents="box-none" style={styles.trendOverlay}>
+                    <View pointerEvents="none" style={StyleSheet.absoluteFill}>
+                      {trendSegments}
+                      {tooltip}
+                    </View>
+                    {trendDots}
                   </View>
-                );
-              })}
+                ) : null}
+              </View>
+
+              <View style={styles.ticksRow}>
+                {dailySeries.map((d, idx) => {
+                  const showTick =
+                    idx === 0 ||
+                    idx === Math.floor(dailySeries.length / 2) ||
+                    idx === dailySeries.length - 1;
+                  const tickLabel = showTick ? d.date.slice(5) : "";
+                  return (
+                    <View key={`tick-${d.date}`} style={styles.tickCol}>
+                      <Text style={styles.tickLabel}>{tickLabel}</Text>
+                    </View>
+                  );
+                })}
+              </View>
             </View>
           )}
 
@@ -329,6 +471,10 @@ const AccountScreen = ({ navigation }) => {
             <View style={styles.legendItem}>
               <View style={[styles.legendSwatch, { backgroundColor: colors.danger }]} />
               <Text style={styles.legendText}>Incorrect</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendLineSwatch, { backgroundColor: trendLineColor }]} />
+              <Text style={styles.legendText}>Correct rate</Text>
             </View>
           </View>
         </View>
@@ -468,14 +614,63 @@ const styles = StyleSheet.create({
   },
   chartWrap: {
     marginTop: spacing.lg,
+    gap: spacing.sm,
+  },
+  chartArea: {
+    height: CHART_HEIGHT,
     flexDirection: "row",
     alignItems: "flex-end",
     justifyContent: "space-between",
     gap: 6,
+    position: "relative",
   },
   chartCol: {
     alignItems: "center",
     flex: 1,
+  },
+  trendOverlay: {
+    position: "absolute",
+    left: 0,
+    top: 0,
+    right: 0,
+    bottom: 0,
+  },
+  trendSegment: {
+    position: "absolute",
+    borderRadius: 999,
+  },
+  trendDot: {
+    position: "absolute",
+  },
+  tooltip: {
+    position: "absolute",
+    paddingVertical: spacing.sm,
+    paddingHorizontal: spacing.md,
+    borderRadius: radii.md,
+    backgroundColor: colors.slate800,
+    borderWidth: 1,
+    borderColor: colors.slate700,
+  },
+  tooltipTextStrong: {
+    color: colors.white,
+    fontSize: type.caption,
+    fontWeight: "800",
+  },
+  tooltipText: {
+    marginTop: 2,
+    color: colors.white,
+    fontSize: type.caption,
+    fontWeight: "600",
+    opacity: 0.95,
+  },
+  ticksRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 6,
+  },
+  tickCol: {
+    flex: 1,
+    alignItems: "center",
   },
   bar: {
     width: 10,
@@ -511,6 +706,11 @@ const styles = StyleSheet.create({
     width: 12,
     height: 12,
     borderRadius: 3,
+  },
+  legendLineSwatch: {
+    width: 14,
+    height: 3,
+    borderRadius: 999,
   },
   legendText: {
     fontSize: type.caption,
