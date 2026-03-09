@@ -81,10 +81,16 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/login`, {
-        email,
-        password,
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/api/auth/login`,
+        {
+          email,
+          password,
+        },
+        {
+          timeout: 10000, // 10 second timeout to avoid hanging
+        }
+      );
 
       const { sessionToken } = response.data;
       if (!sessionToken) {
