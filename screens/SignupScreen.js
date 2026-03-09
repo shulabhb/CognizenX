@@ -128,15 +128,21 @@ const SignupScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post(`${API_BASE_URL}/api/auth/signup`, {
-        name,
-        email,
-        password,
-        age: age ? Number(age) : undefined,
-        gender: gender || undefined,
-        countryOfOrigin: countryOfOrigin ? String(countryOfOrigin).toUpperCase() : undefined,
-        yearsOfEducation: yearsOfEducation ? Number(yearsOfEducation) : undefined,
-      });
+      const response = await axios.post(
+        `${API_BASE_URL}/api/auth/signup`,
+        {
+          name,
+          email,
+          password,
+          age: age ? Number(age) : undefined,
+          gender: gender || undefined,
+          countryOfOrigin: countryOfOrigin ? String(countryOfOrigin).toUpperCase() : undefined,
+          yearsOfEducation: yearsOfEducation ? Number(yearsOfEducation) : undefined,
+        },
+        {
+          timeout: 10000, // 10 second timeout to avoid hanging
+        }
+      );
 
       const { sessionToken } = response.data;
       if (!sessionToken) {
