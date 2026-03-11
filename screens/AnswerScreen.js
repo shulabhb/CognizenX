@@ -16,27 +16,39 @@ const AnswerScreen = ({ route, navigation }) => {
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
-    if (questions[currentIndex] && selectedAnswers[currentIndex]) {
-      const currentQuestion = questions[currentIndex];
-      // Ensure questionId is a string (MongoDB ObjectId as string)
-      const questionId = currentQuestion._id?.toString() || currentQuestion._id || null;
-      console.log('Fetching explanation for question:', {
-        questionId,
-        category,
-        subDomain,
-        hasId: !!currentQuestion._id
-      });
-      fetchDescription(
-        currentQuestion.question,
-        selectedAnswers[currentIndex].answer,
-        currentQuestion.correctAnswer || currentQuestion.correct_answer,
-        questionId, // MongoDB ObjectId as string
-        category,
-        subDomain
-      );
-    } else {
+    const currentQuestion = questions[currentIndex];
+    if (!currentQuestion) {
       setDescription("No data available for this question.");
+      return;
     }
+
+    // Ensure questionId is a string (MongoDB ObjectId as string)
+    const questionId = currentQuestion._id?.toString() || currentQuestion._id || null;
+
+    // Check if the question already carries a cached explanation from the fetch
+    if (currentQuestion.explanation && currentQuestion.explanation.trim()) {
+      console.log(`[AnswerScreen] Q${currentIndex + 1} (id=${questionId}): using cached explanation from question object`);
+      setDescription(currentQuestion.explanation);
+      return;
+    }
+
+    const selectedAnswer = selectedAnswers[currentIndex]?.answer;
+    if (!selectedAnswer) {
+      console.log(`[AnswerScreen] Q${currentIndex + 1} (id=${questionId}): answer not found for this index`);
+      setDescription("No answer available for this question.");
+      return;
+    }
+
+    // No cached explanation — call the backend to generate one
+    console.log(`[AnswerScreen] Q${currentIndex + 1} (id=${questionId}): no cached explanation, calling generate-explanation`);
+    fetchDescription(
+      currentQuestion.question,
+      selectedAnswer,
+      currentQuestion.correctAnswer || currentQuestion.correct_answer,
+      questionId,
+      category,
+      subDomain
+    );
   }, [currentIndex]);
 
   const fetchDescription = async (question, userAnswer, correctAnswer, questionId, category, subDomain) => {

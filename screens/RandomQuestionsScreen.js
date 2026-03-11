@@ -61,7 +61,17 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
       const fetchedQuestions = response.data.questions || [];
       setQuestions(fetchedQuestions);
       console.log(`Fetched ${fetchedQuestions.length} questions`);
-      
+      console.log('Questions:', fetchedQuestions);
+
+      // Log which questions already have a cached explanation
+      fetchedQuestions.forEach((q, i) => {
+        const hasExplanation = !!(q.explanation && q.explanation.trim());
+        console.log(
+          `[Q${i + 1}] id=${q._id} | hasExplanation=${hasExplanation}` +
+          (hasExplanation ? ` | explanation preview: "${q.explanation.slice(0, 60)}..."` : '')
+        );
+      });
+
       // If we have questions, don't generate new ones
       if (fetchedQuestions.length > 0) {
         console.log('Questions available, skipping generation');
