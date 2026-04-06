@@ -27,6 +27,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import { colors, shadow } from '../styles/theme';
 import { ui } from '../styles/ui';
 import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { signup as signupRequest } from "../services/api";
 
 const { width } = Dimensions.get("window");
 
@@ -149,22 +150,18 @@ const SignupScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/auth/signup`,
-        {
-          name,
-          email,
-          password,
-          // Expect YYYY-MM-DD (ISO date-only). Backend accepts ISO date.
-          dob: dob ? String(dob).trim() : undefined,
-          gender: gender || undefined,
-          countryOfOrigin: countryOfOrigin ? String(countryOfOrigin).toUpperCase() : undefined,
-          yearsOfEducation: yearsOfEducation ? Number(yearsOfEducation) : undefined,
-        },
-        {
-          timeout: 10000, // 10 second timeout to avoid hanging
-        }
-      );
+      const response = await signupRequest({
+        name,
+        email,
+        password,
+        // Expect YYYY-MM-DD (ISO date-only). Backend accepts ISO date.
+        dob: dob ? String(dob).trim() : undefined,
+        gender: gender || undefined,
+        countryOfOrigin: countryOfOrigin
+          ? String(countryOfOrigin).toUpperCase()
+          : undefined,
+        yearsOfEducation: yearsOfEducation ? Number(yearsOfEducation) : undefined,
+      });
 
       const { sessionToken } = response.data;
       if (!sessionToken) {

@@ -22,6 +22,7 @@ import axios from "axios";
 import { colors, shadow } from '../styles/theme';
 import { ui } from '../styles/ui';
 import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { login as loginRequest } from "../services/api";
 
 const { width } = Dimensions.get("window");
 
@@ -81,16 +82,7 @@ const LoginScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/auth/login`,
-        {
-          email,
-          password,
-        },
-        {
-          timeout: 10000, // 10 second timeout to avoid hanging
-        }
-      );
+      const response = await loginRequest({ email, password });
 
       const { sessionToken } = response.data;
       if (!sessionToken) {
@@ -98,7 +90,10 @@ const LoginScreen = ({ navigation }) => {
         return;
       }
       
-      console.log("Received sessionToken from backend:", sessionToken.substring(0, 20) + "...");
+      console.log(
+        "Received sessionToken from backend:",
+        sessionToken.substring(0, 20) + "..."
+      );
       console.log("Full token length:", sessionToken.length);
       
       // Save token and verify it was saved before navigating
