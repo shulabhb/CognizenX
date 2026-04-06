@@ -21,7 +21,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import countries from "i18n-iso-countries";
 import en from "i18n-iso-countries/langs/en.json";
 
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 import { colors, radii, spacing, type } from "../styles/theme";
 import { ui } from "../styles/ui";
 
@@ -163,7 +163,7 @@ const AccountScreen = ({ navigation }) => {
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const sessionToken = await AsyncStorage.getItem("sessionToken");
+      const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
       if (!sessionToken) {
         setIsLoggedIn(false);
         setProfile(null);

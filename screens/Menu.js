@@ -15,7 +15,7 @@ import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
 
 import { colors, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -43,7 +43,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
             style: "destructive",
             onPress: async () => {
               try {
-                const sessionToken = await AsyncStorage.getItem("sessionToken");
+                const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
                 
                 if (!sessionToken) {
                   Alert.alert("Error", "You must be logged in to delete your account.");
@@ -54,7 +54,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
                   headers: { Authorization: `Bearer ${sessionToken}` },
                 });
                 
-                await AsyncStorage.removeItem("sessionToken");
+                await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
                 
                 Alert.alert(
                   "Account Deleted", 
@@ -142,6 +142,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
                   handleLogout();
                 } else {
                   AsyncStorage.removeItem("sessionToken");
+                                    AsyncStorage.removeItem(SESSION_TOKEN_KEY);
                   Alert.alert("Logout Successful", "You have been logged out.");
                   navigation.replace("Login");
                 }

@@ -21,7 +21,7 @@ import axios from "axios";
 
 import { colors, shadow } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 
 const { width } = Dimensions.get("window");
 
@@ -102,10 +102,10 @@ const LoginScreen = ({ navigation }) => {
       console.log("Full token length:", sessionToken.length);
       
       // Save token and verify it was saved before navigating
-      await AsyncStorage.setItem("sessionToken", sessionToken);
+      await AsyncStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
       
       // Verify token was saved
-      const savedToken = await AsyncStorage.getItem("sessionToken");
+      const savedToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
       if (savedToken !== sessionToken) {
         console.error("Token mismatch! Saved:", savedToken?.substring(0, 20), "vs Received:", sessionToken.substring(0, 20));
         Alert.alert("Error", "Failed to save session token. Please try again.");

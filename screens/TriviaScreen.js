@@ -20,7 +20,7 @@ import Menu, { getMenuWidth } from './Menu';
 
 import { colors, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 
 const { width, height } = Dimensions.get('window');
 const MENU_ICON = '≡';
@@ -137,7 +137,7 @@ const TriviaScreen = ({ route }) => {
 
   const recordAttempt = async ({ questionId, selectedAnswer, timeTakenMs }) => {
     try {
-      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
       if (!sessionToken) return;
 
       await axios.post(
@@ -229,6 +229,7 @@ const TriviaScreen = ({ route }) => {
   const handleLogout = async () => {
     try {
       await AsyncStorage.removeItem("sessionToken");
+        await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
       Alert.alert("Logout Successful", "You have been logged out.");
       navigation.replace("Login");
     } catch (error) {

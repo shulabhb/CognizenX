@@ -5,7 +5,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { colors, layout, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 
 const RandomQuestionsScreen = ({ route, navigation }) => {
   console.log(route.params)
@@ -52,7 +52,7 @@ const RandomQuestionsScreen = ({ route, navigation }) => {
 
   const recordAttempt = async ({ questionId, selectedAnswer, timeTakenMs }) => {
     try {
-      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
       if (!sessionToken) return;
 
       await axios.post(

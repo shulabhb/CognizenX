@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { colors, isTablet, layout, radii, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 
 const AnswerScreen = ({ route, navigation }) => {
   const { selectedAnswers = [], questions = [], category, subDomain } = route.params;
@@ -42,7 +42,7 @@ const AnswerScreen = ({ route, navigation }) => {
     setLoading(true);
     try {
       // Get session token for authentication
-      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
       if (!sessionToken) {
         setDescription("Please log in to get explanations for answers.");
         setLoading(false);
