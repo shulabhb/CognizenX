@@ -6,14 +6,13 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { colors, isTablet, layout, radii, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 
 const AnswerScreen = ({ route, navigation }) => {
   const { selectedAnswers = [], questions = [], category, subDomain } = route.params;
   const [currentIndex, setCurrentIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [description, setDescription] = useState('');
-  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (questions[currentIndex] && selectedAnswers[currentIndex]) {
@@ -43,7 +42,7 @@ const AnswerScreen = ({ route, navigation }) => {
     setLoading(true);
     try {
       // Get session token for authentication
-      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
       if (!sessionToken) {
         setDescription("Please log in to get explanations for answers.");
         setLoading(false);
@@ -76,19 +75,19 @@ const AnswerScreen = ({ route, navigation }) => {
         setDescription("Error generating description. Please try again later.");
       }
     } catch (error) {
-      console.error('Error fetching description:', error);
-      console.error('Error response:', error.response?.data);
-      
       // Provide more specific error messages
       if (error.response?.status === 401) {
         setDescription("Authentication required. Please log in to get explanations.");
+      } else if (error.response?.status === 429) {
+        setDescription("Explanation generation is temporarily unavailable due to API limits. Please try again later.");
       } else if (error.response?.status === 500) {
-        const errorMsg = error.response?.data?.message || error.message || 'Server error';
+        const errorMsgRaw = error.response?.data?.message || error.message || 'Server error';
+        const errorMsg = String(errorMsgRaw).toLowerCase();
         
         // Handle OpenAI quota/rate limit errors gracefully
         if (errorMsg.includes('quota') || errorMsg.includes('429') || errorMsg.includes('rate limit')) {
           setDescription("Explanation generation is temporarily unavailable due to API limits. Please try again later.");
-        } else if (errorMsg.includes('API key')) {
+        } else if (errorMsg.includes('api key')) {
           setDescription("Explanation generation is currently unavailable. Please contact support.");
         } else {
           setDescription("Unable to generate explanation at this time. Please try again later.");

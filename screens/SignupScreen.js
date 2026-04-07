@@ -22,10 +22,12 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import countries from "i18n-iso-countries";
 import en from "i18n-iso-countries/langs/en.json";
+import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { colors, shadow } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { signup as signupRequest } from "../services/api";
 
 const { width } = Dimensions.get("window");
 
@@ -45,22 +47,42 @@ const GENDER_OPTIONS = [
   { label: "Prefer not to say", value: "prefer_not_to_say" },
 ];
 
+function formatDateOnlyLocal(date) {
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return "";
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function parseDateOnlyString(value) {
+  const s = String(value || "").trim();
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(s)) return null;
+  const [yyyy, mm, dd] = s.split("-").map((x) => Number(x));
+  if (!yyyy || !mm || !dd) return null;
+  const d = new Date(yyyy, mm - 1, dd);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 const SignupScreen = ({ navigation }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
-  const [age, setAge] = useState("");
+  const [dob, setDob] = useState("");
   const [gender, setGender] = useState("");
   const [countryOfOrigin, setCountryOfOrigin] = useState("");
   const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
+  const [dobPickerVisible, setDobPickerVisible] = useState(false);
+  const [dobPickerDate, setDobPickerDate] = useState(new Date());
   const [yearsOfEducation, setYearsOfEducation] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
   const nameRef = useRef(null);
   const emailRef = useRef(null);
-  const ageRef = useRef(null);
+  const dobRef = useRef(null);
   const genderRef = useRef(null);
   const countryOfOriginRef = useRef(null);
   const yearsOfEducationRef = useRef(null);
@@ -128,21 +150,18 @@ const SignupScreen = ({ navigation }) => {
     setLoading(true);
 
     try {
-      const response = await axios.post(
-        `${API_BASE_URL}/api/auth/signup`,
-        {
-          name,
-          email,
-          password,
-          age: age ? Number(age) : undefined,
-          gender: gender || undefined,
-          countryOfOrigin: countryOfOrigin ? String(countryOfOrigin).toUpperCase() : undefined,
-          yearsOfEducation: yearsOfEducation ? Number(yearsOfEducation) : undefined,
-        },
-        {
-          timeout: 10000, // 10 second timeout to avoid hanging
-        }
-      );
+      const response = await signupRequest({
+        name,
+        email,
+        password,
+        // Expect YYYY-MM-DD (ISO date-only). Backend accepts ISO date.
+        dob: dob ? String(dob).trim() : undefined,
+        gender: gender || undefined,
+        countryOfOrigin: countryOfOrigin
+          ? String(countryOfOrigin).toUpperCase()
+          : undefined,
+        yearsOfEducation: yearsOfEducation ? Number(yearsOfEducation) : undefined,
+      });
 
       const { sessionToken } = response.data;
       if (!sessionToken) {
@@ -154,10 +173,10 @@ const SignupScreen = ({ navigation }) => {
       console.log("Full token length:", sessionToken.length);
       
       // Save token and verify it was saved before navigating
-      await AsyncStorage.setItem("sessionToken", sessionToken);
+      await AsyncStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
       
       // Verify token was saved
-      const savedToken = await AsyncStorage.getItem("sessionToken");
+      const savedToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
       if (savedToken !== sessionToken) {
         console.error("Token mismatch! Saved:", savedToken?.substring(0, 20), "vs Received:", sessionToken.substring(0, 20));
         Alert.alert("Error", "Failed to save session token. Please try again.");
@@ -238,16 +257,22 @@ const SignupScreen = ({ navigation }) => {
               </View>
               
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Age</Text>
+                <Text style={styles.label}>Date of Birth</Text>
                 <View style={styles.inputWrapper}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter your age"
-                    placeholderTextColor={colors.gray400}
-                    value={age}
-                    onChangeText={setAge}
-                    keyboardType="numeric"
-                  />
+                  <TouchableOpacity
+                    onPress={() => {
+                      const parsed = parseDateOnlyString(dob);
+                      setDobPickerDate(parsed || new Date());
+                      setDobPickerVisible(true);
+                    }}
+                    style={styles.selectButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Select date of birth"
+                  >
+                    <Text style={dob ? styles.selectText : styles.selectPlaceholder} numberOfLines={1}>
+                      {dob ? dob : "Select date..."}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -492,6 +517,68 @@ const SignupScreen = ({ navigation }) => {
           </View>
         </TouchableWithoutFeedback>
       </Modal>
+
+      {/* DOB Picker */}
+      {Platform.OS === "ios" ? (
+        <Modal
+          visible={dobPickerVisible}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setDobPickerVisible(false)}
+        >
+          <TouchableWithoutFeedback onPress={() => setDobPickerVisible(false)}>
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalBackdrop} />
+              <TouchableWithoutFeedback>
+                <View style={styles.modalCard}>
+                  <Text style={styles.modalTitle}>Select Date of Birth</Text>
+                  <DateTimePicker
+                    value={dobPickerDate}
+                    mode="date"
+                    display="inline"
+                    maximumDate={new Date()}
+                    onChange={(event, selectedDate) => {
+                      if (selectedDate) setDobPickerDate(selectedDate);
+                    }}
+                  />
+                  <View style={styles.modalSpacer} />
+                  <TouchableOpacity
+                    style={styles.modalCancel}
+                    onPress={() => {
+                      setDob(formatDateOnlyLocal(dobPickerDate));
+                      setDobPickerVisible(false);
+                    }}
+                  >
+                    <Text style={styles.modalCancelText}>Done</Text>
+                  </TouchableOpacity>
+                  <View style={styles.modalSpacer} />
+                  <TouchableOpacity
+                    style={styles.modalCancel}
+                    onPress={() => setDobPickerVisible(false)}
+                  >
+                    <Text style={styles.modalCancelText}>Cancel</Text>
+                  </TouchableOpacity>
+                </View>
+              </TouchableWithoutFeedback>
+            </View>
+          </TouchableWithoutFeedback>
+        </Modal>
+      ) : null}
+
+      {Platform.OS === "android" && dobPickerVisible ? (
+        <DateTimePicker
+          value={dobPickerDate}
+          mode="date"
+          display="calendar"
+          maximumDate={new Date()}
+          onChange={(event, selectedDate) => {
+            setDobPickerVisible(false);
+            if (event?.type === "set" && selectedDate) {
+              setDob(formatDateOnlyLocal(selectedDate));
+            }
+          }}
+        />
+      ) : null}
     </SafeAreaView>
   );
 };

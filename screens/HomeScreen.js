@@ -24,7 +24,7 @@ import axios from "axios";
 import Menu, { getMenuWidth } from "./Menu"; // Import the Menu component
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 
 const { width, height } = Dimensions.get("window");
 
@@ -161,7 +161,7 @@ const HomeScreen = ({ navigation }) => {
   // Check login status (just checks if token exists)
   const checkLoginStatus = async () => {
     try {
-      const sessionToken = await AsyncStorage.getItem("sessionToken");
+      const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
       const loggedIn = !!sessionToken;
       setIsLoggedIn(loggedIn);
       return loggedIn;
@@ -184,7 +184,7 @@ const HomeScreen = ({ navigation }) => {
       
       if (loggedIn) {
         // User is logged in, fetch their preferences
-        const sessionToken = await AsyncStorage.getItem("sessionToken");
+        const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
         
         // Double-check token still exists (might have been cleared)
         if (!sessionToken) {
@@ -274,7 +274,9 @@ const HomeScreen = ({ navigation }) => {
           "Token that failed:",
           trimmedToken ? trimmedToken.substring(0, 20) + "..." : "no token"
         );
-        await AsyncStorage.removeItem("sessionToken");
+        await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
+          await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
+          await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
         setIsLoggedIn(false);
         setPreferences([]);
         setLoading(false); // Make sure loading is cleared
@@ -300,7 +302,7 @@ const HomeScreen = ({ navigation }) => {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem("sessionToken");
+      await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
       setIsLoggedIn(false);
       Alert.alert("Logout Successful", "You have been logged out.");
       // Stay on the same screen but show default categories

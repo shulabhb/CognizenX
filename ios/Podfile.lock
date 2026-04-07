@@ -1458,6 +1458,8 @@ PODS:
     - React-Core
   - RNCPicker (2.11.4):
     - React-Core
+  - RNDateTimePicker (8.6.0):
+    - React-Core
   - RNGestureHandler (2.28.0):
     - DoubleConversion
     - glog
@@ -1682,6 +1684,7 @@ DEPENDENCIES:
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
   - "RNCAsyncStorage (from `../node_modules/@react-native-async-storage/async-storage`)"
   - "RNCPicker (from `../node_modules/@react-native-picker/picker`)"
+  - "RNDateTimePicker (from `../node_modules/@react-native-community/datetimepicker`)"
   - RNGestureHandler (from `../node_modules/react-native-gesture-handler`)
   - RNReanimated (from `../node_modules/react-native-reanimated`)
   - RNScreens (from `../node_modules/react-native-screens`)
@@ -1825,6 +1828,8 @@ EXTERNAL SOURCES:
     :path: "../node_modules/@react-native-async-storage/async-storage"
   RNCPicker:
     :path: "../node_modules/@react-native-picker/picker"
+  RNDateTimePicker:
+    :path: "../node_modules/@react-native-community/datetimepicker"
   RNGestureHandler:
     :path: "../node_modules/react-native-gesture-handler"
   RNReanimated:
@@ -1903,6 +1908,7 @@ SPEC CHECKSUMS:
   ReactCommon: 807b38339e3f012a5cf3031eb45c05aedfe4639c
   RNCAsyncStorage: b44e8a4e798c3e1f56bffccd0f591f674fb9198f
   RNCPicker: 7de564dce1f90b53e386a24001aafc3578233dfe
+  RNDateTimePicker: 39a7b97196b9daaa1d52d71fb835da924a9c5776
   RNGestureHandler: d43e39624c80c10bd17b9f14c965320a13436649
   RNReanimated: 6df86cd974086eedb31e19ba8a1f707db99ea56b
   RNScreens: 5ef08d80b450c1c727fe816d326edd6bbd4af27b

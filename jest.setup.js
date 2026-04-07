@@ -67,3 +67,14 @@ jest.mock('@react-navigation/stack', () => {
     },
   };
 });
+
+// Native date picker ships ESM; mock it for unit tests.
+jest.mock('@react-native-community/datetimepicker', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { View } = require('react-native');
+
+  const MockDateTimePicker = (props) => React.createElement(View, props, null);
+  return MockDateTimePicker;
+});
