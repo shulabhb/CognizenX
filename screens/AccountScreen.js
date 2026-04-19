@@ -309,7 +309,15 @@ const AccountScreen = ({ navigation }) => {
 
       setSavingProfile(true);
       try {
-        const sessionToken = await AsyncStorage.getItem("sessionToken");
+        let sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+        if (!sessionToken) {
+          const legacyToken = await AsyncStorage.getItem("sessionToken");
+          if (legacyToken) {
+            sessionToken = legacyToken;
+            await AsyncStorage.setItem(SESSION_TOKEN_KEY, legacyToken);
+            await AsyncStorage.removeItem("sessionToken");
+          }
+        }
         if (!sessionToken) {
           Alert.alert("Error", "Please log in again.");
           setIsLoggedIn(false);

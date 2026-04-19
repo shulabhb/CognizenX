@@ -21,13 +21,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Menu, { getMenuWidth } from './Menu'; // Import the Menu component
 import { colors, radii, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 
 const { width, height } = Dimensions.get('window');
 
 // Menu icons
 const MENU_ICON = '≡';
 const CLOSE_ICON = '✕';
+const LEGACY_SESSION_TOKEN_KEY = "sessionToken";
 
 // Category emojis mapping
 const categoryEmojis = {
@@ -64,6 +65,25 @@ const CategoriesScreen = () => {
   // New animation values for notification
   const notificationSlide = useRef(new Animated.Value(-100)).current;
   const notificationOpacity = useRef(new Animated.Value(0)).current;
+
+  const getStoredSessionToken = async () => {
+    const scopedToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    if (scopedToken) return scopedToken;
+
+    const legacyToken = await AsyncStorage.getItem(LEGACY_SESSION_TOKEN_KEY);
+    if (legacyToken) {
+      // Migrate old key so upgraded users stay logged in.
+      await AsyncStorage.setItem(SESSION_TOKEN_KEY, legacyToken);
+      await AsyncStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
+      return legacyToken;
+    }
+    return null;
+  };
+
+  const clearSessionToken = async () => {
+    await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
+    await AsyncStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
+  };
 
   const categories = [
     {
@@ -168,7 +188,7 @@ const CategoriesScreen = () => {
   useEffect(() => {
     const checkLoginAndFetchUserId = async () => {
       try {
-        const sessionToken = await AsyncStorage.getItem('sessionToken');
+        const sessionToken = await getStoredSessionToken();
         if (!sessionToken) {
           // Not logged in, redirect to Home screen
           setIsLoggedIn(false);
@@ -203,7 +223,7 @@ const CategoriesScreen = () => {
         console.error('Error response:', error.response?.data);
         
         // Clear invalid token immediately
-        await AsyncStorage.removeItem('sessionToken');
+        await clearSessionToken();
         setIsLoggedIn(false);
         setLoading(false);
         
@@ -236,7 +256,7 @@ const CategoriesScreen = () => {
   // Log Activity
   const logActivity = async (category, subDomain) => {
     try {
-      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      const sessionToken = await getStoredSessionToken();
 
       if (!sessionToken) {
         console.error('No session token found');
@@ -296,7 +316,7 @@ const CategoriesScreen = () => {
   // Handle logout
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem('sessionToken');
+      await clearSessionToken();
       Alert.alert('Logout Successful', 'You have been logged out.');
       navigation.replace('Login');
     } catch (error) {
@@ -399,7 +419,7 @@ const CategoriesScreen = () => {
     setSelectedCategories([]);
     
     try {
-      const sessionToken = await AsyncStorage.getItem('sessionToken');
+      const sessionToken = await getStoredSessionToken();
       
       if (!sessionToken) {
         console.error('No session token found');
@@ -486,8 +506,16 @@ const CategoriesScreen = () => {
       
       console.log("Final combined preferences to send:", JSON.stringify(combinedPreferences));
       console.log("Selected categories:", JSON.stringify(categoriesForMessage));
-      
-      // Note: Activity is already logged above, no need to log again
+
+      // Persist explicit selections so Home reflects exactly what user added.
+      await axios.put(
+        `${API_BASE_URL}/api/user-preferences`,
+        { preferences: combinedPreferences },
+        {
+          headers: { Authorization: `Bearer ${sessionToken}` },
+        }
+      );
+
       console.log("Categories added successfully!");
       
       // Create a more descriptive success message
@@ -528,7 +556,7 @@ const CategoriesScreen = () => {
       // Check if it's an authentication error
       if (error.response?.status === 401) {
         // Clear invalid token
-        await AsyncStorage.removeItem('sessionToken');
+        await clearSessionToken();
         Alert.alert(
           'Authentication Required',
           'Your session has expired. Please log in again to add categories.',
