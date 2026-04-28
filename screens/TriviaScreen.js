@@ -55,8 +55,6 @@ const TriviaScreen = ({ route }) => {
 
   const { category, subDomain } = route.params;
 
-  const QUESTIONS_API_URL = `${API_BASE_URL}/api/questions?category=${category}&subDomain=${subDomain}`;
-
   // Toggle menu function
   const toggleMenu = () => {
     if (menuOpen) {
@@ -110,8 +108,11 @@ const TriviaScreen = ({ route }) => {
   useEffect(() => {
     const fetchQuestions = async () => {
       try {
-        console.log(QUESTIONS_API_URL);
-        const response = await axios.get(QUESTIONS_API_URL);
+        const url = `${API_BASE_URL}/api/questions`;
+        console.log('Fetching questions:', { url, category, subDomain });
+        const response = await axios.get(url, {
+          params: { category, subDomain },
+        });
        
         console.log('API Response:', response);
 

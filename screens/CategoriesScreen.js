@@ -13,9 +13,9 @@ import {
   ActivityIndicator,
   TouchableWithoutFeedback
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Menu, { getMenuWidth } from './Menu'; // Import the Menu component
@@ -28,14 +28,14 @@ const { width, height } = Dimensions.get('window');
 // Menu icons
 const MENU_ICON = '≡';
 const CLOSE_ICON = '✕';
-const LEGACY_SESSION_TOKEN_KEY = "sessionToken";
 
 // Category emojis mapping
 const categoryEmojis = {
   politics: '🗳️',
   geography: '🗺️',
   history: '📚',
-  mythology: '🏛️',
+  religion: '🏛️',
+ // mythology: '🏛️',
   generalknowledge: '🧠',
   entertainment: '🎬',
   sports: '🏏',
@@ -62,27 +62,32 @@ const CategoriesScreen = () => {
   const menuAnimation = useRef(new Animated.Value(-menuWidth)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
+  // Debug: helps confirm the running JS bundle has religion (not mythology).
+  useEffect(() => {
+    try {
+      console.log('[CategoriesScreen] build check: categories=', categories.map((c) => c.name));
+    } catch (e) {
+      // no-op
+    }
+  }, []);
+
   // New animation values for notification
   const notificationSlide = useRef(new Animated.Value(-100)).current;
   const notificationOpacity = useRef(new Animated.Value(0)).current;
 
-  const getStoredSessionToken = async () => {
-    const scopedToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
-    if (scopedToken) return scopedToken;
+  const getSessionToken = async () => {
+    const token = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    if (token) return token;
 
-    const legacyToken = await AsyncStorage.getItem(LEGACY_SESSION_TOKEN_KEY);
+    // Backwards compatibility: migrate legacy key if it exists
+    const legacyToken = await AsyncStorage.getItem('sessionToken');
     if (legacyToken) {
-      // Migrate old key so upgraded users stay logged in.
       await AsyncStorage.setItem(SESSION_TOKEN_KEY, legacyToken);
-      await AsyncStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
+      await AsyncStorage.removeItem('sessionToken');
       return legacyToken;
     }
-    return null;
-  };
 
-  const clearSessionToken = async () => {
-    await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
-    await AsyncStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
+    return null;
   };
 
   const categories = [
@@ -108,8 +113,8 @@ const CategoriesScreen = () => {
       colorEnd: '#feb47b',
     },
     {
-      name: 'mythology',
-      subDomains: ['Hindu', 'Other Mythologies'],
+      name: 'religion',
+      subDomains: ['Hindu', 'Islam', 'Christianity', 'Sikhism', 'Buddhism', 'Jainism'],
       icon: 'accessibility-outline',
       colorStart: '#614385',
       colorEnd: '#516395',
@@ -188,7 +193,7 @@ const CategoriesScreen = () => {
   useEffect(() => {
     const checkLoginAndFetchUserId = async () => {
       try {
-        const sessionToken = await getStoredSessionToken();
+        const sessionToken = await getSessionToken();
         if (!sessionToken) {
           // Not logged in, redirect to Home screen
           setIsLoggedIn(false);
@@ -207,45 +212,66 @@ const CategoriesScreen = () => {
         }
     
         setIsLoggedIn(true);
-        
-        // Fetch user ID since user is logged in
-        const response = await axios.get(`${API_BASE_URL}/api/auth/get-user-id`, {
-          headers: {
-            Authorization: `Bearer ${sessionToken}`,
-          },
-          withCredentials: true,
-        });
-    
-        setUserId(response.data.userId);
+
+        // Fetch user ID since user is logged in.
+        // Serverless DB reads can be briefly inconsistent after login; retry 401s a few times.
+        const maxAttempts = 3;
+        let response;
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+          try {
+            response = await axios.get(`${API_BASE_URL}/api/auth/get-user-id`, {
+              headers: {
+                Authorization: `Bearer ${sessionToken.trim()}`,
+              },
+              timeout: 5000,
+            });
+            break;
+          } catch (err) {
+            const status = err.response?.status;
+            if (status === 401 && attempt < maxAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, 250 * attempt));
+              continue;
+            }
+            throw err;
+          }
+        }
+
+        setUserId(response?.data?.userId || null);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching user ID:', error.response?.data || error.message);
         console.error('Error response:', error.response?.data);
-        
-        // Clear invalid token immediately
-        await clearSessionToken();
-        setIsLoggedIn(false);
+
         setLoading(false);
-        
-        // Only show alert if it's a 401 (invalid token)
-        // For other errors, just navigate silently
+
+        // Only clear tokens on confirmed auth failure.
         if (error.response?.status === 401) {
-          const errorMessage = error.response?.data?.message || 
-                             'Your session has expired or is invalid. Please log in again.';
-          
+          await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
+          await AsyncStorage.removeItem('sessionToken');
+          setIsLoggedIn(false);
+
+          const errorMessage =
+            error.response?.data?.message ||
+            'Your session has expired or is invalid. Please log in again.';
+
+          Alert.alert('Authentication Required', errorMessage, [
+            {
+              text: 'OK',
+              onPress: () => navigation.replace('Home'),
+            },
+          ]);
+        } else {
+          // Network/server error: keep token, but bail out of the screen.
           Alert.alert(
-            'Authentication Required', 
-            errorMessage,
+            'Unable to Load Categories',
+            'Please check your connection and try again.',
             [
-              { 
-                text: 'OK', 
-                onPress: () => navigation.replace('Home')
-              }
+              {
+                text: 'OK',
+                onPress: () => navigation.replace('Home'),
+              },
             ]
           );
-        } else {
-          // For other errors, just navigate to Home without alert
-          navigation.replace('Home');
         }
       }
     };
@@ -256,20 +282,21 @@ const CategoriesScreen = () => {
   // Log Activity
   const logActivity = async (category, subDomain) => {
     try {
-      const sessionToken = await getStoredSessionToken();
+      const sessionToken = await getSessionToken();
 
       if (!sessionToken) {
         console.error('No session token found');
         Alert.alert('Error', 'User is not logged in.');
         return;
       }
-      domain = subDomain;
       await axios.post(
         `${API_BASE_URL}/api/log-activity`,
-        { category, domain },
+        // Backward compatibility: some deployed backends still validate `domain`.
+        // Send both until all environments are migrated.
+        { category, subDomain, domain: subDomain },
         {
           headers: {
-            Authorization: `Bearer ${sessionToken}`,
+            Authorization: `Bearer ${sessionToken.trim()}`,
           },
         }
       );
@@ -316,7 +343,8 @@ const CategoriesScreen = () => {
   // Handle logout
   const handleLogout = async () => {
     try {
-      await clearSessionToken();
+      await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
+      await AsyncStorage.removeItem('sessionToken');
       Alert.alert('Logout Successful', 'You have been logged out.');
       navigation.replace('Login');
     } catch (error) {
@@ -419,7 +447,7 @@ const CategoriesScreen = () => {
     setSelectedCategories([]);
     
     try {
-      const sessionToken = await getStoredSessionToken();
+      const sessionToken = await getSessionToken();
       
       if (!sessionToken) {
         console.error('No session token found');
@@ -436,7 +464,7 @@ const CategoriesScreen = () => {
       const currentPrefsResponse = await axios.get(
         `${API_BASE_URL}/api/user-preferences`,
         {
-          headers: { Authorization: `Bearer ${sessionToken}` },
+          headers: { Authorization: `Bearer ${sessionToken.trim()}` },
         }
       );
       const currentPrefs = currentPrefsResponse.data.preferences || [];
@@ -458,10 +486,10 @@ const CategoriesScreen = () => {
         if (typeof pref === 'object') {
           if (pref.category && typeof pref.category === 'string') {
             category = pref.category;
-            subDomain = pref.subDomain;
+            subDomain = pref.subDomain || pref.domain || pref.subdomain || pref.sub_domain;
           } else if (pref.category && typeof pref.category === 'object') {
             category = pref.category.category;
-            subDomain = pref.subDomain;
+            subDomain = pref.subDomain || pref.domain || pref.subdomain || pref.sub_domain;
           } else {
             console.warn("Skipping unrecognized preference format:", pref);
             return;
@@ -473,7 +501,9 @@ const CategoriesScreen = () => {
         
         // Skip if category is missing or if subDomain is null/undefined/"General" 
         if (!category || !subDomain || subDomain === "General") {
-          console.warn("Skipping incomplete or General-only preference:", JSON.stringify(pref));
+          // NOTE: Some backends/older DB docs may return category-only prefs (no subDomain).
+          // We silently skip these because the app requires a subDomain to quiz/log activity.
+          console.log("Skipping incomplete or General-only preference:", JSON.stringify(pref));
           return;
         }
         
@@ -506,16 +536,8 @@ const CategoriesScreen = () => {
       
       console.log("Final combined preferences to send:", JSON.stringify(combinedPreferences));
       console.log("Selected categories:", JSON.stringify(categoriesForMessage));
-
-      // Persist explicit selections so Home reflects exactly what user added.
-      await axios.put(
-        `${API_BASE_URL}/api/user-preferences`,
-        { preferences: combinedPreferences },
-        {
-          headers: { Authorization: `Bearer ${sessionToken}` },
-        }
-      );
-
+      
+      // Note: Activity is already logged above, no need to log again
       console.log("Categories added successfully!");
       
       // Create a more descriptive success message
@@ -556,7 +578,8 @@ const CategoriesScreen = () => {
       // Check if it's an authentication error
       if (error.response?.status === 401) {
         // Clear invalid token
-        await clearSessionToken();
+        await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
+        await AsyncStorage.removeItem('sessionToken');
         Alert.alert(
           'Authentication Required',
           'Your session has expired. Please log in again to add categories.',
