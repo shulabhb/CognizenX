@@ -33,7 +33,8 @@ const categoryEmojis = {
   politics: "🗳️",
   geography: "🗺️",
   history: "📚",
-  mythology: "🏛️",
+  religion: "🏛️",
+  // mythology: "🏛️",
   generalknowledge: "🧠",
   entertainment: "🎬",
   sports: "🏏",
@@ -98,13 +99,13 @@ const HomeScreen = ({ navigation }) => {
         // Case 1: {category: "string", subDomain: "string"}
         if (pref && typeof pref.category === 'string') {
           category = pref.category;
-          subDomain = pref.subDomain;
+          subDomain = pref.subDomain || pref.domain || pref.subdomain || pref.sub_domain;
           console.log(`  Case 1: category=${category}, subDomain=${subDomain}`);
         } 
         // Case 2: {category: {category: "string"}, subDomain: "string"}
         else if (pref && typeof pref.category === 'object' && pref.category && pref.category.category) {
           category = pref.category.category;
-          subDomain = pref.subDomain;
+          subDomain = pref.subDomain || pref.domain || pref.subdomain || pref.sub_domain;
           console.log(`  Case 2: category=${category}, subDomain=${subDomain}`);
         }
         // Case 3: Direct string (fallback)
@@ -130,23 +131,24 @@ const HomeScreen = ({ navigation }) => {
           if (keys.includes('subDomain') || keys.includes('subdomain') || keys.includes('sub_domain')) {
             subDomain = pref.subDomain || pref.subdomain || pref.sub_domain;
           }
+
+          if (!subDomain && keys.includes('domain')) {
+            subDomain = pref.domain;
+          }
           
           console.log(`  After Case 4 extraction: category=${category}, subDomain=${subDomain}`);
         }
         
-        // If we found a valid category, add it to our grouped preferences
-        if (category) {
+        // Only include categories that have at least one usable subDomain.
+        // Category-only prefs are not actionable (cannot quiz/log activity without subDomain).
+        if (category && subDomain) {
           if (!grouped[category]) {
             grouped[category] = [];
           }
-          
-          // Add subDomain if present (can be "General" or any other value)
-          if (subDomain) {
-            // Add the subdomain if not already present
-            if (!grouped[category].includes(subDomain)) {
-              grouped[category].push(subDomain);
-              console.log(`  Added subdomain to category: ${category} → ${subDomain}`);
-            }
+
+          if (!grouped[category].includes(subDomain)) {
+            grouped[category].push(subDomain);
+            console.log(`  Added subdomain to category: ${category} → ${subDomain}`);
           }
         }
       } catch (err) {
