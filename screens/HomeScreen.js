@@ -38,6 +38,9 @@ const categoryEmojis = {
   generalknowledge: "🧠",
   entertainment: "🎬",
   sports: "🏏",
+  art: "🎨",
+  culture: "🌏",
+  cuisine: "🍲",
   "current affairs": "📰",
   default: "📱",
 };
