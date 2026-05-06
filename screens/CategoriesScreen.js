@@ -39,6 +39,9 @@ const categoryEmojis = {
   generalknowledge: '🧠',
   entertainment: '🎬',
   sports: '🏏',
+  art: '🎨',
+  culture: '🌏',
+  cuisine: '🍲',
   'current affairs': '📰',
   default: '📱',
 };
@@ -139,6 +142,27 @@ const CategoriesScreen = () => {
       icon: 'tv-outline',
       colorStart: '#ff4e50',
       colorEnd: '#f9d423',
+    },
+    {
+      name: 'art',
+      subDomains: ['Western Art', 'Eastern Art', 'South Asian', 'Architecture Sculpture'],
+      icon: 'color-palette-outline',
+      colorStart: '#8360c3',
+      colorEnd: '#2ebf91',
+    },
+    {
+      name: 'culture',
+      subDomains: ['Global Traditions', 'South Asian', 'Festivals Rituals', 'Performing Arts'],
+      icon: 'people-outline',
+      colorStart: '#fc5c7d',
+      colorEnd: '#6a82fb',
+    },
+    {
+      name: 'cuisine',
+      subDomains: ['World Cuisines', 'South Asian', 'Street Foods', 'Spices Ingredients'],
+      icon: 'restaurant-outline',
+      colorStart: '#f7971e',
+      colorEnd: '#ffd200',
     },
     {
       name: 'current affairs',
