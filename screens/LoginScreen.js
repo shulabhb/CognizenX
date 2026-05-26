@@ -157,7 +157,7 @@ const LoginScreen = ({ navigation }) => {
             <View style={styles.headerContainer}>
               <Text style={styles.title}>CognizenX</Text>
               <Text style={styles.subtitle}>Welcome Back</Text>
-              <Text style={styles.description}>Sign in to continue with a familiar, simple routine.</Text>
+              <Text style={styles.description}>Sign in to continue.</Text>
             </View>
 
             <View style={ui.formCard}>
@@ -231,27 +231,6 @@ const LoginScreen = ({ navigation }) => {
               >
                 <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
               </TouchableOpacity>
-            </View>
-
-            <View style={styles.supportCard}>
-              <Text style={styles.supportTitle}>A gentle routine</Text>
-              <View style={styles.supportStepsRow}>
-                <View style={styles.supportStepCard}>
-                  <Text style={styles.supportStepIcon}>🔐</Text>
-                  <Text style={styles.supportStepTitle}>Sign in</Text>
-                  <Text style={styles.supportStepBody}>Start with one simple step.</Text>
-                </View>
-                <View style={styles.supportStepCard}>
-                  <Text style={styles.supportStepIcon}>🧭</Text>
-                  <Text style={styles.supportStepTitle}>Choose</Text>
-                  <Text style={styles.supportStepBody}>Pick a quiz or a game.</Text>
-                </View>
-                <View style={styles.supportStepCard}>
-                  <Text style={styles.supportStepIcon}>🌿</Text>
-                  <Text style={styles.supportStepTitle}>Go gently</Text>
-                  <Text style={styles.supportStepBody}>Move at a calm, steady pace.</Text>
-                </View>
-              </View>
             </View>
 
             <View style={styles.footer}>
@@ -389,49 +368,6 @@ const styles = StyleSheet.create({
     color: colors.brand,
     fontSize: 16,
     fontWeight: "600",
-  },
-  supportCard: {
-    marginTop: 20,
-    backgroundColor: colors.white,
-    borderRadius: 18,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.brandBorder,
-  },
-  supportTitle: {
-    fontSize: 19,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginBottom: 14,
-    textAlign: "center",
-  },
-  supportStepsRow: {
-    gap: 12,
-  },
-  supportStepCard: {
-    backgroundColor: colors.backgroundTint,
-    borderRadius: 16,
-    paddingVertical: 16,
-    paddingHorizontal: 14,
-    borderWidth: 1,
-    borderColor: colors.brandBorder,
-    alignItems: "center",
-  },
-  supportStepIcon: {
-    fontSize: 28,
-    marginBottom: 8,
-  },
-  supportStepTitle: {
-    fontSize: 17,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginBottom: 4,
-  },
-  supportStepBody: {
-    fontSize: 15,
-    lineHeight: 22,
-    color: colors.textMuted,
-    textAlign: "center",
   },
   footer: {
     marginTop: 24,

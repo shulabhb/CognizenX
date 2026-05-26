@@ -77,16 +77,6 @@ const normalisePreferenceEntry = (pref) => {
   };
 };
 
-// Default categories for anonymous users
-const DEFAULT_CATEGORIES = {
-  "General Knowledge": ["Trivia", "Facts"],
-  "History": ["World History", "Ancient Civilizations"],
-  "Geography": ["Countries", "Landmarks"],
-  "Entertainment": ["Movies", "Music", "TV Shows"],
-  "Sports": ["Cricket", "Football", "Olympics"],
-  "Science": ["Biology", "Technology"]
-};
-
 // Menu icons (using emoji or text to avoid vector icon issues)
 const MENU_ICON = "≡";
 const HomeScreen = ({ navigation }) => {
@@ -177,9 +167,9 @@ const HomeScreen = ({ navigation }) => {
     return "";
   };
 
-  // Get grouped preferences from current state or use default for anonymous users
+  // Get grouped preferences from current state
   const savedGroupedPreferences = processPreferences(preferences);
-  const groupedPreferences = isLoggedIn ? savedGroupedPreferences : DEFAULT_CATEGORIES;
+  const groupedPreferences = savedGroupedPreferences;
   const savedSelections = preferences.reduce((acc, pref) => {
     const normalized = normalisePreferenceEntry(pref);
     if (!normalized) {
@@ -291,10 +281,11 @@ const HomeScreen = ({ navigation }) => {
           setUserName("");
         }
       } else {
-        // User is not logged in, use default categories
-        console.log("User not logged in, using default categories");
+        console.log("User not logged in, redirecting to login");
         setPreferences([]);
         setUserName("");
+        navigation.replace("Login");
+        return;
       }
     } catch (error) {
       console.error("Error fetching preferences:", error);
@@ -477,7 +468,7 @@ const HomeScreen = ({ navigation }) => {
         <View style={styles.emptyState}>
           <Text style={styles.emptyEmoji}>😕</Text>
           <Text style={styles.emptyStateText}>
-            No categories available. {isLoggedIn ? "Start exploring!" : "Please log in to customize categories."}
+            No categories available yet. Start by saving a few categories.
           </Text>
         </View>
       );
@@ -573,6 +564,10 @@ const HomeScreen = ({ navigation }) => {
         </View>
       </SafeAreaView>
     );
+  }
+
+  if (!isLoggedIn) {
+    return null;
   }
 
   return (

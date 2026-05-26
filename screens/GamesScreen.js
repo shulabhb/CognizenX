@@ -1,23 +1,21 @@
-import React, { useState, useRef } from 'react';
+import React, { useCallback, useState, useRef } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Animated,
-  Dimensions,
   useWindowDimensions,
   StatusBar,
-  TouchableWithoutFeedback
+  ScrollView,
 } from 'react-native';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Menu, { getMenuWidth } from './Menu';
 
-import { colors, shadow, spacing } from '../styles/theme';
+import { colors, layout, radii, shadow, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
-
-const { width, height } = Dimensions.get('window');
+import { clearStoredSessionToken, getStoredSessionToken } from '../utils/session';
 
 // Menu icons
 const MENU_ICON = '≡';
@@ -27,9 +25,8 @@ const GamesScreen = () => {
   const menuWidth = getMenuWidth(screenWidth);
 
   const navigation = useNavigation();
-  const insets = useSafeAreaInsets();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [isLoggedIn, setIsLoggedIn] = useState(true); // You can add login check logic here
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
   
   // Animation for the menu
   const menuAnimation = useRef(new Animated.Value(-menuWidth)).current;
@@ -40,6 +37,25 @@ const GamesScreen = () => {
       menuAnimation.setValue(-menuWidth);
     }
   }, [menuWidth, menuOpen, menuAnimation]);
+
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
+
+      const refreshAuthState = async () => {
+        const sessionToken = await getStoredSessionToken();
+        if (isActive) {
+          setIsLoggedIn(!!sessionToken);
+        }
+      };
+
+      refreshAuthState();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   // Toggle menu function
   const toggleMenu = () => {
@@ -78,8 +94,9 @@ const GamesScreen = () => {
   // Handle logout
   const handleLogout = async () => {
     try {
-      // Add logout logic here if needed
-      navigation.replace("Home");
+      await clearStoredSessionToken();
+      setIsLoggedIn(false);
+      navigation.replace("Login");
     } catch (error) {
       console.error('Logout Error:', error);
     }
@@ -89,29 +106,32 @@ const GamesScreen = () => {
     {
       id: 'snake',
       title: 'Snake Game',
-      description: 'Classic snake game with simple controls',
+      description: 'Classic snake with clear controls and a steady pace.',
       icon: '🐍',
-      color: '#10B981',
-      gradientStart: '#10B981',
-      gradientEnd: '#34D399',
+      eyebrow: 'Classic',
+      accentBg: colors.successBg,
+      accentText: colors.successDark,
+      tag: 'Simple controls',
     },
     {
       id: 'snakeTouch',
       title: 'Touch Snake',
-      description: 'Touch and drag to control the snake (finger tracker)',
+      description: 'Guide the snake with touch and drag gestures.',
       icon: '👆',
-      color: '#0EA5E9',
-      gradientStart: '#0EA5E9',
-      gradientEnd: '#38BDF8',
+      eyebrow: 'Interactive',
+      accentBg: colors.blue50,
+      accentText: colors.blue600,
+      tag: 'Touch play',
     },
     {
       id: 'puzzles',
       title: 'Puzzles',
-      description: 'Brain-teasing puzzles for cognitive exercise',
+      description: 'Short puzzle play for memory and focus practice.',
       icon: '🧩',
-      color: '#8B5CF6',
-      gradientStart: '#8B5CF6',
-      gradientEnd: '#A78BFA',
+      eyebrow: 'Focus',
+      accentBg: colors.brandTint,
+      accentText: colors.brandDark,
+      tag: 'Brain exercise',
     },
   ];
 
@@ -143,41 +163,58 @@ const GamesScreen = () => {
           <View style={ui.headerSpacer} />
         </View>
 
-        {/* Games Content */}
-        <View style={styles.content}>
-          <Text style={styles.welcomeText}>Choose Your Game</Text>
-          <Text style={styles.subtitleText}>Select a game to start playing and exercising your mind</Text>
-          
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+          <View style={[ui.sectionCard, styles.heroCard, styles.contentMaxWidth]}>
+            <Text style={styles.heroTitle}>Choose a game</Text>
+            <Text style={styles.heroSubtitle}>
+              Pick one simple activity and start when you are ready.
+            </Text>
+          </View>
+
+          <View style={[styles.sectionHeader, styles.contentMaxWidth]}>
+            <Text style={styles.sectionTitle}>Available games</Text>
+          </View>
+
           <View style={styles.gamesContainer}>
             {games.map((game) => (
               <TouchableOpacity
                 key={game.id}
-                style={[styles.gameCard, { backgroundColor: game.color }]}
+                style={[ui.sectionCard, styles.gameCard]}
                 onPress={() => handleGamePress(game.id)}
-                activeOpacity={0.8}
+                activeOpacity={0.9}
               >
-                <View style={styles.gameIconContainer}>
-                  <Text style={styles.gameIcon}>{game.icon}</Text>
+                <View style={styles.gameRow}>
+                  <View style={[styles.gameIconContainer, { backgroundColor: game.accentBg }]}>
+                    <Text style={styles.gameIcon}>{game.icon}</Text>
+                  </View>
+
+                  <View style={styles.gameInfo}>
+                    <Text style={[styles.gameEyebrow, { color: game.accentText }]}>{game.eyebrow}</Text>
+                    <Text style={styles.gameTitle}>{game.title}</Text>
+                    <Text style={styles.gameDescription}>{game.description}</Text>
+                  </View>
                 </View>
-                <View style={styles.gameInfo}>
-                  <Text style={styles.gameTitle}>{game.title}</Text>
-                  <Text style={styles.gameDescription}>{game.description}</Text>
-                </View>
-                <View style={styles.playButton}>
-                  <Text style={styles.playButtonText}>▶</Text>
+
+                <View style={styles.gameFooter}>
+                  <View style={[styles.gameTag, { backgroundColor: game.accentBg }]}>
+                    <Text style={[styles.gameTagText, { color: game.accentText }]}>{game.tag}</Text>
+                  </View>
+
+                  <View style={styles.playButton}>
+                    <Text style={styles.playButtonText}>Open</Text>
+                  </View>
                 </View>
               </TouchableOpacity>
             ))}
           </View>
-          
-          {/* Coming Soon Section */}
-          <View style={styles.comingSoonContainer}>
-            <Text style={styles.comingSoonTitle}>More Games Coming Soon!</Text>
+
+          <View style={[ui.sectionCard, styles.comingSoonContainer, styles.contentMaxWidth]}>
+            <Text style={styles.comingSoonTitle}>More games coming soon</Text>
             <Text style={styles.comingSoonText}>
-              We're working on adding more engaging games to help with cognitive exercises.
+              We are adding more quiet, easy-to-follow activities over time.
             </Text>
           </View>
-        </View>
+        </ScrollView>
       </Animated.View>
 
       {/* Drawer Menu */}
@@ -203,42 +240,59 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
   },
-  welcomeText: {
+  scrollContent: {
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xxl,
+  },
+  contentMaxWidth: {
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+  },
+  heroCard: {
+    marginTop: spacing.lg,
+  },
+  heroTitle: {
     fontSize: 28,
-    fontWeight: "700",
+    fontWeight: '800',
     color: colors.textPrimary,
-    textAlign: "center",
-    marginBottom: 8,
+    textAlign: 'left',
   },
-  subtitleText: {
-    fontSize: 16,
+  heroSubtitle: {
+    marginTop: spacing.sm,
+    fontSize: type.bodySm,
     color: colors.textMuted,
-    textAlign: "center",
-    marginBottom: 40,
+    textAlign: 'left',
     lineHeight: 24,
   },
+  sectionHeader: {
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+  },
+  sectionTitle: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
   gamesContainer: {
-    marginBottom: 40,
+    marginBottom: spacing.lg,
   },
   gameCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 20,
-    borderRadius: 16,
-    marginBottom: 16,
-    ...shadow({ color: colors.black, offsetHeight: 4, opacity: 0.1, radius: 8, elevation: 4 }),
+    marginBottom: spacing.md,
+    padding: spacing.lg,
+  },
+  gameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   gameIconContainer: {
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: spacing.md,
   },
   gameIcon: {
     fontSize: 30,
@@ -246,48 +300,68 @@ const styles = StyleSheet.create({
   gameInfo: {
     flex: 1,
   },
+  gameEyebrow: {
+    fontSize: type.caption,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: spacing.xs,
+  },
   gameTitle: {
     fontSize: 20,
-    fontWeight: "600",
-    color: colors.white,
-    marginBottom: 4,
+    fontWeight: '800',
+    color: colors.textPrimary,
+    marginBottom: spacing.xs,
   },
   gameDescription: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: type.bodySm,
+    color: colors.textMuted,
     lineHeight: 20,
   },
+  gameFooter: {
+    marginTop: spacing.md,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.md,
+  },
+  gameTag: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+  },
+  gameTagText: {
+    fontSize: type.caption,
+    fontWeight: '700',
+  },
   playButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 255, 255, 0.2)",
-    justifyContent: "center",
-    alignItems: "center",
+    minWidth: 88,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    borderRadius: radii.pill,
+    backgroundColor: colors.brandTint,
+    borderWidth: 1,
+    borderColor: colors.brandBorder,
+    alignItems: 'center',
   },
   playButtonText: {
-    fontSize: 16,
-    color: colors.white,
-    fontWeight: "600",
+    fontSize: type.bodySm,
+    color: colors.brandDark,
+    fontWeight: '700',
   },
   comingSoonContainer: {
-    backgroundColor: colors.surface,
-    padding: 20,
-    borderRadius: 16,
-    ...shadow({ color: colors.brand, offsetHeight: 2, opacity: 0.1, radius: 4, elevation: 2 }),
+    marginBottom: spacing.md,
   },
   comingSoonTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "700",
     color: colors.textSecondary,
-    textAlign: "center",
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   comingSoonText: {
-    fontSize: 14,
+    fontSize: type.bodySm,
     color: colors.textMuted,
-    textAlign: "center",
-    lineHeight: 20,
+    lineHeight: 22,
   },
 });
 

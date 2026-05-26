@@ -33,7 +33,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
   const menuWidth = getMenuWidth(screenWidth);
   
   const primaryItems = [
-    { label: 'Home', icon: 'home-outline', action: () => navigation.navigate("Home") },
+    ...(isLoggedIn ? [{ label: 'Home', icon: 'home-outline', action: () => navigation.navigate("Home") }] : []),
     ...(isLoggedIn ? [{ label: 'Categories', icon: 'grid-outline', action: () => navigation.navigate("Categories") }] : []),
     { label: 'Games', icon: 'game-controller-outline', action: () => navigation.navigate("Games") },
     ...(isLoggedIn ? [{ label: 'Performance', icon: 'stats-chart-outline', action: () => navigation.navigate("Performance") }] : []),
@@ -70,7 +70,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
                 Alert.alert(
                   "Account Deleted", 
                   "Your account has been successfully deleted.",
-                  [{ text: "OK", onPress: () => { closeMenu(); navigation.replace("Home"); } }]
+                  [{ text: "OK", onPress: () => { closeMenu(); navigation.replace("Login"); } }]
                 );
               } catch (error) {
                 console.error("Error deleting account:", error);

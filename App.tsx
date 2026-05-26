@@ -28,9 +28,9 @@ const LaunchScreen = () => (
   <SafeAreaView style={styles.launchScreen}>
     <View style={styles.launchCard}>
       <Text style={styles.launchEyebrow}>CognizenX</Text>
-      <Text style={styles.launchTitle}>Preparing your calm start</Text>
+      <Text style={styles.launchTitle}>Checking sign-in</Text>
       <Text style={styles.launchSubtitle}>
-        We are checking your saved sign-in so you can continue where you left off.
+        Please wait a moment.
       </Text>
       <ActivityIndicator size="large" color={colors.brandDark} style={styles.launchSpinner} />
     </View>

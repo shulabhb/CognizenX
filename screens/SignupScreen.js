@@ -233,7 +233,7 @@ const SignupScreen = ({ navigation }) => {
             <View style={styles.headerContainer}>
               <Text style={styles.title}>CognizenX</Text>
               <Text style={styles.subtitle}>Create Account</Text>
-              <Text style={styles.description}>Set up your account once, then come back with fewer steps.</Text>
+              <Text style={styles.description}>Create your account to get started.</Text>
             </View>
 
             <View style={ui.formCard}>
@@ -397,12 +397,6 @@ const SignupScreen = ({ navigation }) => {
                   </TouchableOpacity>
                 </Animated.View>
               )}
-            </View>
-
-            <View style={styles.supportCard}>
-              <Text style={styles.supportTitle}>Getting started is simple</Text>
-              <Text style={styles.supportText}>Use clear details you can remember easily.</Text>
-              <Text style={styles.supportText}>You can come back later and continue from where you left off.</Text>
             </View>
 
             <View style={styles.footer}>
@@ -773,28 +767,6 @@ const styles = StyleSheet.create({
     color: colors.white,
     fontSize: 20,
     fontWeight: "700",
-  },
-  supportCard: {
-    marginTop: 20,
-    backgroundColor: colors.white,
-    borderRadius: 18,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: colors.brandBorder,
-  },
-  supportTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.textPrimary,
-    marginBottom: 10,
-    textAlign: "center",
-  },
-  supportText: {
-    fontSize: 17,
-    lineHeight: 26,
-    color: colors.textSecondary,
-    textAlign: "center",
-    marginBottom: 4,
   },
   footer: {
     marginTop: 24,
