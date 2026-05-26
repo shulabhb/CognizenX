@@ -36,6 +36,15 @@ jest.mock('@expo/vector-icons', () => {
   };
 });
 
+jest.mock('react-native-vector-icons/Ionicons', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react');
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const { Text } = require('react-native');
+
+  return (props) => React.createElement(Text, props, 'Icon');
+});
+
 // React Navigation can schedule timers/animations which may run after tests finish.
 // For unit tests, mock it to a minimal implementation.
 jest.mock('@react-navigation/native', () => {

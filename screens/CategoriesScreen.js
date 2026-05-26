@@ -14,7 +14,7 @@ import {
   TouchableWithoutFeedback
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -43,6 +43,37 @@ const categoryEmojis = {
   default: '📱',
 };
 
+const groupPreferences = (preferences = []) => {
+  const grouped = {};
+
+  preferences.forEach((pref) => {
+    let category = null;
+    let subDomain = null;
+
+    if (pref && typeof pref.category === 'string') {
+      category = pref.category;
+      subDomain = pref.subDomain || pref.domain || pref.subdomain || pref.sub_domain;
+    } else if (pref && typeof pref.category === 'object' && pref.category?.category) {
+      category = pref.category.category;
+      subDomain = pref.subDomain || pref.domain || pref.subdomain || pref.sub_domain;
+    }
+
+    if (!category || !subDomain) {
+      return;
+    }
+
+    if (!grouped[category]) {
+      grouped[category] = [];
+    }
+
+    if (!grouped[category].includes(subDomain)) {
+      grouped[category].push(subDomain);
+    }
+  });
+
+  return grouped;
+};
+
 const CategoriesScreen = () => {
   const { width: screenWidth } = useWindowDimensions();
   const menuWidth = getMenuWidth(screenWidth);
@@ -57,6 +88,8 @@ const CategoriesScreen = () => {
   // New state for selected categories
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [successMessage, setSuccessMessage] = useState('');
+  const [activeTab, setActiveTab] = useState('all');
+  const [savedPreferences, setSavedPreferences] = useState([]);
   
   // Animation for the menu
   const menuAnimation = useRef(new Animated.Value(-menuWidth)).current;
@@ -89,6 +122,12 @@ const CategoriesScreen = () => {
 
     return null;
   };
+
+  const savedCollections = groupPreferences(savedPreferences);
+  const savedCollectionCount = Object.values(savedCollections).reduce(
+    (count, subDomains) => count + subDomains.length,
+    0
+  );
 
   const categories = [
     {
@@ -237,6 +276,7 @@ const CategoriesScreen = () => {
         }
 
         setUserId(response?.data?.userId || null);
+        await fetchSavedPreferences(sessionToken);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching user ID:', error.response?.data || error.message);
@@ -321,7 +361,28 @@ const CategoriesScreen = () => {
       return;
     }
     await logActivity(category, subDomain);
-    navigation.navigate('Trivia', { category, subDomain });
+    navigation.navigate('Quiz', { categories: [category], subDomain });
+  };
+
+  const fetchSavedPreferences = async (providedToken) => {
+    try {
+      const sessionToken = providedToken || (await getSessionToken());
+      if (!sessionToken) {
+        setSavedPreferences([]);
+        return;
+      }
+
+      const response = await axios.get(`${API_BASE_URL}/api/user-preferences`, {
+        headers: {
+          Authorization: `Bearer ${sessionToken.trim()}`,
+        },
+      });
+
+      setSavedPreferences(response?.data?.preferences || []);
+    } catch (error) {
+      console.error('Error fetching saved preferences:', error.response?.data || error.message);
+      setSavedPreferences([]);
+    }
   };
 
   // Button Animation
@@ -468,6 +529,8 @@ const CategoriesScreen = () => {
         }
       );
       const currentPrefs = currentPrefsResponse.data.preferences || [];
+      setSavedPreferences(currentPrefs);
+      setActiveTab('yours');
       
       
       console.log("Current preferences from API:", JSON.stringify(currentPrefs));
@@ -649,60 +712,125 @@ const CategoriesScreen = () => {
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
         >
-          {categories.map((category) => {
-            // Count selected subdomains for this category
-            const selectedCount = selectedCategories.filter(
-              item => item.category === category.name
-            ).length;
-            
-            return (
-              <View key={category.name} style={ui.sectionCard}>
-                <View style={styles.categoryHeader}>
-                  <View style={styles.categoryIconContainer}>
-                    <Text style={styles.categoryEmoji}>
-                      {categoryEmojis[category.name.toLowerCase()] || categoryEmojis.default}
-                    </Text>
-                  </View>
-                  <View style={styles.categoryTitleContainer}>
-                    <Text style={styles.categoryTitle}>{category.name}</Text>
-                    {selectedCount > 0 && (
-                      <Text style={styles.selectedCount}>
-                        {selectedCount} selected
-                      </Text>
-                    )}
-                  </View>
-                </View>
+          <View style={[ui.sectionCard, styles.introCard]}>
+            <View style={styles.introTitleRow}>
+              <Ionicons name="sparkles-outline" size={18} color={colors.brandDark} />
+              <Text style={styles.introTitle}>Build your collections</Text>
+            </View>
+            <Text style={styles.introBody}>Select to add to your category collections.</Text>
+
+            <View style={styles.tabsWrap}>
+              <TouchableOpacity
+                style={[styles.tabButton, activeTab === 'all' ? styles.tabButtonActive : styles.tabButtonInactive]}
+                onPress={() => setActiveTab('all')}
+              >
+                <Text style={[styles.tabButtonText, activeTab === 'all' ? styles.tabTextActive : styles.tabTextInactive]}>
+                  All
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.tabButton, activeTab === 'yours' ? styles.tabButtonActive : styles.tabButtonInactive]}
+                onPress={() => setActiveTab('yours')}
+              >
+                <Text style={[styles.tabButtonText, activeTab === 'yours' ? styles.tabTextActive : styles.tabTextInactive]}>
+                  Yours {savedCollectionCount ? `(${savedCollectionCount})` : ''}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {activeTab === 'all'
+            ? categories.map((category) => {
+                const selectedCount = selectedCategories.filter(
+                  item => item.category === category.name
+                ).length;
                 
-                <View style={styles.subdomainsContainer}>
-                  {category.subDomains.map((subDomain) => (
-                    <TouchableOpacity
-                      key={subDomain}
-                      style={[
-                        ui.subdomainCard,
-                        isSelected(category.name, subDomain) && styles.selectedSubdomainCard
-                      ]}
-                      onPress={() => handleSubdomainSelect(category.name, subDomain)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={ui.subdomainText}>{subDomain}</Text>
-                      {isSelected(category.name, subDomain) && (
-                        <View style={styles.checkmarkContainer}>
-                          <Text style={styles.checkmark}>✓</Text>
-                        </View>
-                      )}
-                    </TouchableOpacity>
-                  ))}
+                return (
+                  <View key={category.name} style={ui.sectionCard}>
+                    <View style={styles.categoryHeader}>
+                      <View style={styles.categoryIconContainer}>
+                        <Text style={styles.categoryEmoji}>
+                          {categoryEmojis[category.name.toLowerCase()] || categoryEmojis.default}
+                        </Text>
+                      </View>
+                      <View style={styles.categoryTitleContainer}>
+                        <Text style={styles.categoryTitle}>{category.name}</Text>
+                        <Text style={styles.categoryHint}>Tap topics to add them to your collection</Text>
+                        {selectedCount > 0 && (
+                          <Text style={styles.selectedCount}>
+                            {selectedCount} selected
+                          </Text>
+                        )}
+                      </View>
+                    </View>
+                    
+                    <View style={styles.subdomainsContainer}>
+                      {category.subDomains.map((subDomain) => (
+                        <TouchableOpacity
+                          key={subDomain}
+                          style={[
+                            ui.subdomainCard,
+                            isSelected(category.name, subDomain) && styles.selectedSubdomainCard
+                          ]}
+                          onPress={() => handleSubdomainSelect(category.name, subDomain)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={ui.subdomainText}>{subDomain}</Text>
+                          {isSelected(category.name, subDomain) && (
+                            <View style={styles.checkmarkContainer}>
+                              <Text style={styles.checkmark}>✓</Text>
+                            </View>
+                          )}
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                );
+              })
+            : Object.keys(savedCollections).length > 0
+              ? Object.entries(savedCollections).map(([category, subDomains]) => (
+                  <View key={`saved-${category}`} style={ui.sectionCard}>
+                    <View style={styles.categoryHeader}>
+                      <View style={styles.categoryIconContainer}>
+                        <Text style={styles.categoryEmoji}>
+                          {categoryEmojis[category.toLowerCase()] || categoryEmojis.default}
+                        </Text>
+                      </View>
+                      <View style={styles.categoryTitleContainer}>
+                        <Text style={styles.categoryTitle}>{category}</Text>
+                        <Text style={styles.categoryHint}>Ready whenever you want to practice</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.subdomainsContainer}>
+                      {subDomains.map((subDomain) => (
+                        <TouchableOpacity
+                          key={`${category}-${subDomain}`}
+                          style={[ui.subdomainCard, styles.savedSubdomainCard]}
+                          onPress={() => handleCategorySelect(category, subDomain)}
+                          activeOpacity={0.7}
+                        >
+                          <Text style={styles.savedSubdomainText}>{subDomain}</Text>
+                        </TouchableOpacity>
+                      ))}
+                    </View>
+                  </View>
+                ))
+              : (
+                <View style={ui.sectionCard}>
+                  <Text style={styles.emptyTitle}>Your collection is still empty</Text>
+                  <Text style={styles.emptyBody}>
+                    Choose topics from the All tab to build a personalized category collection.
+                  </Text>
                 </View>
-              </View>
-            );
-          })}
+              )}
           
           {/* Add some padding at the bottom to account for the floating button */}
           <View style={styles.bottomSpacer} />
         </ScrollView>
         
         {/* Add Categories Button */}
-        {selectedCategories.length > 0 && (
+        {activeTab === 'all' && selectedCategories.length > 0 && (
           <View style={styles.addButtonContainer}>
             <TouchableOpacity 
               style={styles.addButton}
@@ -754,6 +882,55 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingBottom: 30,
   },
+  introCard: {
+    marginBottom: spacing.sm,
+  },
+  introTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.sm,
+  },
+  introTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: colors.textSecondary,
+  },
+  introBody: {
+    marginTop: spacing.sm,
+    fontSize: 16,
+    lineHeight: 24,
+    color: colors.textMuted,
+  },
+  tabsWrap: {
+    flexDirection: "row",
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+  },
+  tabButton: {
+    flex: 1,
+    borderRadius: radii.pill,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderWidth: 1,
+  },
+  tabButtonActive: {
+    backgroundColor: colors.brandSelectedBg,
+    borderColor: colors.brandBorder,
+  },
+  tabButtonInactive: {
+    backgroundColor: colors.white,
+    borderColor: colors.slate200,
+  },
+  tabButtonText: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  tabTextActive: {
+    color: colors.brandSelectedText,
+  },
+  tabTextInactive: {
+    color: colors.textSecondary,
+  },
   categoryHeader: {
     flexDirection: "row",
     alignItems: "center",
@@ -780,6 +957,11 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     textTransform: "capitalize",
   },
+  categoryHint: {
+    marginTop: 4,
+    fontSize: 14,
+    color: colors.textMuted,
+  },
   selectedCount: {
     fontSize: 12,
     color: colors.brandDark,
@@ -801,6 +983,16 @@ const styles = StyleSheet.create({
   },
   selectedSubdomainCard: {
     backgroundColor: colors.brandDark,
+  },
+  savedSubdomainCard: {
+    backgroundColor: colors.brandTint,
+    borderColor: colors.brandBorder,
+    borderWidth: 1,
+  },
+  savedSubdomainText: {
+    color: colors.brandSelectedText,
+    fontSize: 15,
+    fontWeight: "700",
   },
   checkmarkContainer: {
     position: 'absolute',
@@ -867,6 +1059,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '500',
     flex: 1,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+  emptyBody: {
+    marginTop: spacing.sm,
+    fontSize: 16,
+    lineHeight: 24,
+    color: colors.textMuted,
   },
   bottomSpacer: {
     height: 100,

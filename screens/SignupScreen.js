@@ -18,7 +18,6 @@ import {
   Dimensions,
   ScrollView,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import countries from "i18n-iso-countries";
 import en from "i18n-iso-countries/langs/en.json";
@@ -26,8 +25,9 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 
 import { colors, shadow } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { API_BASE_URL } from "../config/backend";
 import { signup as signupRequest } from "../services/api";
+import { getStoredSessionToken, saveSessionToken } from "../utils/session";
 
 const { width } = Dimensions.get("window");
 
@@ -173,11 +173,11 @@ const SignupScreen = ({ navigation }) => {
       console.log("Full token length:", sessionToken.length);
       
       // Save token and verify it was saved before navigating
-      await AsyncStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
+      await saveSessionToken(sessionToken);
       
       // Verify token was saved
-      const savedToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
-      if (savedToken !== sessionToken) {
+      const savedToken = await getStoredSessionToken();
+      if (savedToken !== sessionToken.trim()) {
         console.error("Token mismatch! Saved:", savedToken?.substring(0, 20), "vs Received:", sessionToken.substring(0, 20));
         Alert.alert("Error", "Failed to save session token. Please try again.");
         return;
@@ -233,7 +233,7 @@ const SignupScreen = ({ navigation }) => {
             <View style={styles.headerContainer}>
               <Text style={styles.title}>CognizenX</Text>
               <Text style={styles.subtitle}>Create Account</Text>
-              <Text style={styles.description}>Join us to begin your memory care journey</Text>
+              <Text style={styles.description}>Set up your account once, then come back with fewer steps.</Text>
             </View>
 
             <View style={ui.formCard}>
@@ -397,6 +397,12 @@ const SignupScreen = ({ navigation }) => {
                   </TouchableOpacity>
                 </Animated.View>
               )}
+            </View>
+
+            <View style={styles.supportCard}>
+              <Text style={styles.supportTitle}>Getting started is simple</Text>
+              <Text style={styles.supportText}>Use clear details you can remember easily.</Text>
+              <Text style={styles.supportText}>You can come back later and continue from where you left off.</Text>
             </View>
 
             <View style={styles.footer}>
@@ -609,36 +615,38 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     marginTop: 60,
-    marginBottom: 40,
+    marginBottom: 32,
     alignItems: 'center',
   },
   title: {
-    fontSize: 36,
-    fontWeight: "700",
+    fontSize: 40,
+    fontWeight: "800",
     color: colors.textSecondary,
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: 28,
+    fontWeight: "700",
     color: colors.textMuted,
     marginBottom: 8,
     textAlign: "center",
   },
   description: {
-    fontSize: 16,
+    fontSize: 18,
     color: colors.gray400,
     textAlign: "center",
+    lineHeight: 28,
+    maxWidth: 330,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 22,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
     color: colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   inputWrapper: {
     borderRadius: 14,
@@ -659,33 +667,33 @@ const styles = StyleSheet.create({
 
   passwordToggle: {
     paddingHorizontal: 16,
-    height: 56,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   passwordToggleText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.brand,
   },
   input: {
-    height: 56,
-    paddingHorizontal: 16,
-    fontSize: 16,
+    height: 60,
+    paddingHorizontal: 18,
+    fontSize: 18,
     color: colors.textSecondary,
   },
   selectButton: {
-    height: 56,
-    paddingHorizontal: 16,
+    height: 60,
+    paddingHorizontal: 18,
     justifyContent: "center",
   },
   selectText: {
-    fontSize: 16,
+    fontSize: 18,
     color: colors.textSecondary,
   },
   selectPlaceholder: {
-    fontSize: 16,
+    fontSize: 18,
     color: colors.gray400,
   },
   modalOverlay: {
@@ -729,9 +737,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   modalSearchInput: {
-    height: 44,
+    height: 48,
     paddingHorizontal: 14,
-    fontSize: 16,
+    fontSize: 17,
     color: colors.textSecondary,
   },
   modalList: {
@@ -755,28 +763,52 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
   },
   signupButton: {
-    height: 56,
-    borderRadius: 14,
+    height: 62,
+    borderRadius: 18,
     marginTop: 12,
     overflow: 'hidden',
     ...shadow({ color: colors.brand, offsetHeight: 4, opacity: 0.3, radius: 10, elevation: 6 }),
   },
   signupButtonText: {
     color: colors.white,
+    fontSize: 20,
+    fontWeight: "700",
+  },
+  supportCard: {
+    marginTop: 20,
+    backgroundColor: colors.white,
+    borderRadius: 18,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.brandBorder,
+  },
+  supportTitle: {
     fontSize: 18,
-    fontWeight: "600",
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginBottom: 10,
+    textAlign: "center",
+  },
+  supportText: {
+    fontSize: 17,
+    lineHeight: 26,
+    color: colors.textSecondary,
+    textAlign: "center",
+    marginBottom: 4,
   },
   footer: {
     marginTop: 24,
     alignItems: 'center',
   },
   loginPrompt: {
-    fontSize: 16,
+    fontSize: 17,
     color: colors.textMuted,
+    textAlign: "center",
+    lineHeight: 26,
   },
   loginLink: {
     color: colors.brand,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   loader: {
     marginTop: 16,

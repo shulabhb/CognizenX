@@ -16,13 +16,13 @@ import {
   Dimensions,
   ScrollView
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
 import { colors, shadow } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { API_BASE_URL } from "../config/backend";
 import { login as loginRequest } from "../services/api";
+import { getStoredSessionToken, saveSessionToken } from "../utils/session";
 
 const { width } = Dimensions.get("window");
 
@@ -97,11 +97,11 @@ const LoginScreen = ({ navigation }) => {
       console.log("Full token length:", sessionToken.length);
       
       // Save token and verify it was saved before navigating
-      await AsyncStorage.setItem(SESSION_TOKEN_KEY, sessionToken);
+      await saveSessionToken(sessionToken);
       
       // Verify token was saved
-      const savedToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
-      if (savedToken !== sessionToken) {
+      const savedToken = await getStoredSessionToken();
+      if (savedToken !== sessionToken.trim()) {
         console.error("Token mismatch! Saved:", savedToken?.substring(0, 20), "vs Received:", sessionToken.substring(0, 20));
         Alert.alert("Error", "Failed to save session token. Please try again.");
         return;
@@ -157,7 +157,7 @@ const LoginScreen = ({ navigation }) => {
             <View style={styles.headerContainer}>
               <Text style={styles.title}>CognizenX</Text>
               <Text style={styles.subtitle}>Welcome Back</Text>
-              <Text style={styles.description}>Sign in to continue your journey</Text>
+              <Text style={styles.description}>Sign in to continue with a familiar, simple routine.</Text>
             </View>
 
             <View style={ui.formCard}>
@@ -233,6 +233,27 @@ const LoginScreen = ({ navigation }) => {
               </TouchableOpacity>
             </View>
 
+            <View style={styles.supportCard}>
+              <Text style={styles.supportTitle}>A gentle routine</Text>
+              <View style={styles.supportStepsRow}>
+                <View style={styles.supportStepCard}>
+                  <Text style={styles.supportStepIcon}>🔐</Text>
+                  <Text style={styles.supportStepTitle}>Sign in</Text>
+                  <Text style={styles.supportStepBody}>Start with one simple step.</Text>
+                </View>
+                <View style={styles.supportStepCard}>
+                  <Text style={styles.supportStepIcon}>🧭</Text>
+                  <Text style={styles.supportStepTitle}>Choose</Text>
+                  <Text style={styles.supportStepBody}>Pick a quiz or a game.</Text>
+                </View>
+                <View style={styles.supportStepCard}>
+                  <Text style={styles.supportStepIcon}>🌿</Text>
+                  <Text style={styles.supportStepTitle}>Go gently</Text>
+                  <Text style={styles.supportStepBody}>Move at a calm, steady pace.</Text>
+                </View>
+              </View>
+            </View>
+
             <View style={styles.footer}>
               <Text style={styles.signupPrompt}>
                 Don't have an account?{" "}
@@ -280,36 +301,38 @@ const styles = StyleSheet.create({
   },
   headerContainer: {
     marginTop: 60,
-    marginBottom: 40,
+    marginBottom: 32,
     alignItems: 'center',
   },
   title: {
-    fontSize: 36,
-    fontWeight: "700",
+    fontSize: 40,
+    fontWeight: "800",
     color: colors.textSecondary,
     marginBottom: 8,
     textAlign: "center",
   },
   subtitle: {
-    fontSize: 24,
-    fontWeight: "600",
+    fontSize: 28,
+    fontWeight: "700",
     color: colors.textMuted,
     marginBottom: 8,
     textAlign: "center",
   },
   description: {
-    fontSize: 16,
+    fontSize: 18,
     color: colors.gray400,
     textAlign: "center",
+    lineHeight: 28,
+    maxWidth: 320,
   },
   inputContainer: {
-    marginBottom: 20,
+    marginBottom: 22,
   },
   label: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 16,
+    fontWeight: "700",
     color: colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: 10,
   },
   inputWrapper: {
     borderRadius: 14,
@@ -330,53 +353,99 @@ const styles = StyleSheet.create({
 
   passwordToggle: {
     paddingHorizontal: 16,
-    height: 56,
+    height: 60,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   passwordToggleText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 16,
+    fontWeight: '700',
     color: colors.brand,
   },
   input: {
-    height: 56,
-    paddingHorizontal: 16,
-    fontSize: 16,
+    height: 60,
+    paddingHorizontal: 18,
+    fontSize: 18,
     color: colors.textSecondary,
   },
   loginButton: {
-    height: 56,
-    borderRadius: 14,
+    height: 62,
+    borderRadius: 18,
     marginTop: 12,
     overflow: 'hidden',
     ...shadow({ color: colors.brand, offsetHeight: 4, opacity: 0.3, radius: 10, elevation: 6 }),
   },
   loginButtonText: {
     color: colors.white,
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
   },
   forgotPassword: {
-    marginTop: 16,
+    marginTop: 20,
     alignItems: 'center',
   },
   forgotPasswordText: {
     color: colors.brand,
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  supportCard: {
+    marginTop: 20,
+    backgroundColor: colors.white,
+    borderRadius: 18,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.brandBorder,
+  },
+  supportTitle: {
+    fontSize: 19,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginBottom: 14,
+    textAlign: "center",
+  },
+  supportStepsRow: {
+    gap: 12,
+  },
+  supportStepCard: {
+    backgroundColor: colors.backgroundTint,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 14,
+    borderWidth: 1,
+    borderColor: colors.brandBorder,
+    alignItems: "center",
+  },
+  supportStepIcon: {
+    fontSize: 28,
+    marginBottom: 8,
+  },
+  supportStepTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: colors.textPrimary,
+    marginBottom: 4,
+  },
+  supportStepBody: {
+    fontSize: 15,
+    lineHeight: 22,
+    color: colors.textMuted,
+    textAlign: "center",
   },
   footer: {
     marginTop: 24,
     alignItems: 'center',
   },
   signupPrompt: {
-    fontSize: 16,
+    fontSize: 17,
     color: colors.textMuted,
+    textAlign: "center",
+    lineHeight: 26,
   },
   signupLink: {
     color: colors.brand,
-    fontWeight: "600",
+    fontWeight: "700",
   },
   loader: {
     marginTop: 16,

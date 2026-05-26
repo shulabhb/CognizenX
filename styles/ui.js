@@ -59,8 +59,8 @@ export const ui = StyleSheet.create({
   },
 
   headerTitleLg: {
-    fontSize: 22,
-    fontWeight: '700',
+    fontSize: 24,
+    fontWeight: '800',
     color: colors.textSecondary,
   },
 
@@ -100,8 +100,8 @@ export const ui = StyleSheet.create({
 
   formCard: {
     backgroundColor: colors.surface,
-    borderRadius: 20,
-    padding: 24,
+    borderRadius: 24,
+    padding: 26,
     width: '100%',
     maxWidth: layout.contentMaxWidth,
     alignSelf: 'center',
@@ -135,24 +135,27 @@ export const ui = StyleSheet.create({
   },
 
   input: {
-    height: 56,
-    paddingHorizontal: 16,
-    fontSize: type.body,
+    height: 60,
+    paddingHorizontal: 18,
+    fontSize: type.body + 1,
     color: colors.textSecondary,
   },
 
   buttonPrimary: {
     backgroundColor: colors.brand,
-    padding: 15,
-    borderRadius: 12,
+    minHeight: 60,
+    paddingHorizontal: 18,
+    paddingVertical: 16,
+    borderRadius: 16,
     alignItems: 'center',
+    justifyContent: 'center',
     ...shadow({ offsetHeight: 2, radius: 4, elevation: 3 }),
   },
 
   buttonPrimaryText: {
     color: colors.white,
     fontSize: type.button,
-    fontWeight: '600',
+    fontWeight: '700',
   },
 
   buttonPill: {

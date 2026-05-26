@@ -9,13 +9,14 @@ import {
   Alert,
   Platform,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { TouchableWithoutFeedback } from 'react-native-gesture-handler';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { colors, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { API_BASE_URL } from "../config/backend";
+import { clearStoredSessionToken, getStoredSessionToken } from "../utils/session";
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -31,6 +32,16 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const menuWidth = getMenuWidth(screenWidth);
   
+  const primaryItems = [
+    { label: 'Home', icon: 'home-outline', action: () => navigation.navigate("Home") },
+    ...(isLoggedIn ? [{ label: 'Categories', icon: 'grid-outline', action: () => navigation.navigate("Categories") }] : []),
+    { label: 'Games', icon: 'game-controller-outline', action: () => navigation.navigate("Games") },
+    ...(isLoggedIn ? [{ label: 'Performance', icon: 'stats-chart-outline', action: () => navigation.navigate("Performance") }] : []),
+    ...(isLoggedIn
+      ? [{ label: 'Account', icon: 'person-circle-outline', action: () => navigation.navigate("Account") }]
+      : [{ label: 'Log In / Sign Up', icon: 'log-in-outline', action: () => navigation.navigate("Login") }]),
+  ];
+
   const handleDeleteAccount = async () => {
     try {
       Alert.alert(
@@ -43,7 +54,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
             style: "destructive",
             onPress: async () => {
               try {
-                const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+                const sessionToken = await getStoredSessionToken();
                 
                 if (!sessionToken) {
                   Alert.alert("Error", "You must be logged in to delete your account.");
@@ -54,7 +65,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
                   headers: { Authorization: `Bearer ${sessionToken}` },
                 });
                 
-                await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
+                await clearStoredSessionToken();
                 
                 Alert.alert(
                   "Account Deleted", 
@@ -102,58 +113,46 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
         
         {/* Menu Items Container */}
         <View style={styles.menuItems}>
-          <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Home"); closeMenu(); }}>
-            <Text style={styles.menuIcon}>🏠</Text>
-            <Text style={styles.menuText}>Home</Text>
-          </TouchableOpacity>
-          
-          {isLoggedIn && (
-            <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Categories"); closeMenu(); }}>
-              <Text style={styles.menuIcon}>📂</Text>
-              <Text style={styles.menuText}>Categories</Text>
+          {primaryItems.map((item) => (
+            <TouchableOpacity
+              key={item.label}
+              style={styles.menuItem}
+              onPress={() => {
+                item.action();
+                closeMenu();
+              }}
+            >
+              <View style={styles.menuIconWrap}>
+                <Ionicons name={item.icon} size={20} color={colors.slate600} />
+              </View>
+              <Text style={styles.menuText}>{item.label}</Text>
             </TouchableOpacity>
-          )}
-          
-          {!isLoggedIn && (
-            <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Login"); closeMenu(); }}>
-              <Text style={styles.menuIcon}>🔑</Text>
-              <Text style={styles.menuText}>Log In / Sign Up</Text>
-            </TouchableOpacity>
-          )}
-          
-          <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Games"); closeMenu(); }}>
-            <Text style={styles.menuIcon}>🎮</Text>
-            <Text style={styles.menuText}>Games</Text>
-          </TouchableOpacity>
-
-          {isLoggedIn && (
-            <TouchableOpacity style={styles.menuItem} onPress={() => { navigation.navigate("Account"); closeMenu(); }}>
-              <Text style={styles.menuIcon}>👤</Text>
-              <Text style={styles.menuText}>Account</Text>
-            </TouchableOpacity>
-          )}
+          ))}
           
           {/* Account Actions */}
           {isLoggedIn && (
             <>
               <View style={styles.divider} />
-              <TouchableOpacity style={styles.menuItem} onPress={() => {
+              <TouchableOpacity style={styles.menuItem} onPress={async () => {
                 if (handleLogout) {
                   handleLogout();
                 } else {
-                  AsyncStorage.removeItem("sessionToken");
-                                    AsyncStorage.removeItem(SESSION_TOKEN_KEY);
+                  await clearStoredSessionToken();
                   Alert.alert("Logout Successful", "You have been logged out.");
                   navigation.replace("Login");
                 }
                 closeMenu();
               }}>
-                <Text style={styles.menuIcon}>🚪</Text>
+                <View style={styles.menuIconWrap}>
+                  <Ionicons name="log-out-outline" size={20} color={colors.dangerDark} />
+                </View>
                 <Text style={[styles.menuText, styles.dangerText]}>Logout</Text>
               </TouchableOpacity>
               
               <TouchableOpacity style={styles.menuItem} onPress={() => { handleDeleteAccount(); }}>
-                <Text style={styles.menuIcon}>🗑️</Text>
+                <View style={styles.menuIconWrap}>
+                  <Ionicons name="trash-outline" size={20} color={colors.dangerDark} />
+                </View>
                 <Text style={[styles.menuText, styles.dangerText]}>Delete Account</Text>
               </TouchableOpacity>
             </>
@@ -211,10 +210,14 @@ const styles = StyleSheet.create({
     paddingVertical: 18,
     paddingHorizontal: 0,
   },
-  menuIcon: {
-    fontSize: 22,
-    marginRight: 20,
-    width: 28,
+  menuIconWrap: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    marginRight: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.slate100,
   },
   menuText: {
     fontSize: 17,

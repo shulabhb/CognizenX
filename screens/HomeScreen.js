@@ -1,4 +1,4 @@
-import { colors, layout, shadow, spacing, type } from '../styles/theme';
+import { colors, layout, radii, shadow, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import {
@@ -6,27 +6,22 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  FlatList,
   ActivityIndicator,
   Alert,
-  Image,
   Animated,
-  Dimensions,
   useWindowDimensions,
   ScrollView,
   StatusBar,
   TouchableWithoutFeedback,
   Modal,
-  Pressable,
 } from "react-native";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 import Menu, { getMenuWidth } from "./Menu"; // Import the Menu component
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
-
-const { width, height } = Dimensions.get("window");
+import Ionicons from "react-native-vector-icons/Ionicons";
+import { API_BASE_URL } from "../config/backend";
+import { clearStoredSessionToken, getStoredSessionToken } from "../utils/session";
 
 // Category emojis mapping
 const categoryEmojis = {
@@ -42,6 +37,46 @@ const categoryEmojis = {
   default: "📱",
 };
 
+const normalisePreferenceEntry = (pref) => {
+  let category = null;
+  let subDomain = null;
+
+  if (pref && typeof pref.category === "string") {
+    category = pref.category;
+    subDomain = pref.subDomain || pref.domain || pref.subdomain || pref.sub_domain;
+  } else if (pref && typeof pref.category === "object" && pref.category && pref.category.category) {
+    category = pref.category.category;
+    subDomain = pref.subDomain || pref.domain || pref.subdomain || pref.sub_domain;
+  } else if (pref && typeof pref === "object") {
+    const keys = Object.keys(pref);
+
+    if (keys.includes("category")) {
+      if (typeof pref.category === "string") {
+        category = pref.category;
+      } else if (typeof pref.category === "object" && pref.category) {
+        category = pref.category.category || pref.category.name || Object.values(pref.category)[0];
+      }
+    }
+
+    if (keys.includes("subDomain") || keys.includes("subdomain") || keys.includes("sub_domain")) {
+      subDomain = pref.subDomain || pref.subdomain || pref.sub_domain;
+    }
+
+    if (!subDomain && keys.includes("domain")) {
+      subDomain = pref.domain;
+    }
+  }
+
+  if (!category || !subDomain) {
+    return null;
+  }
+
+  return {
+    category: String(category).trim(),
+    subDomain: String(subDomain).trim(),
+  };
+};
+
 // Default categories for anonymous users
 const DEFAULT_CATEGORIES = {
   "General Knowledge": ["Trivia", "Facts"],
@@ -54,14 +89,12 @@ const DEFAULT_CATEGORIES = {
 
 // Menu icons (using emoji or text to avoid vector icon issues)
 const MENU_ICON = "≡";
-const CLOSE_ICON = "✕";
-const PLUS_ICON = "➕";
-
 const HomeScreen = ({ navigation }) => {
   const { width: screenWidth } = useWindowDimensions();
   const menuWidth = getMenuWidth(screenWidth);
 
   const [preferences, setPreferences] = useState([]);
+  const [userName, setUserName] = useState("");
   const [loading, setLoading] = useState(true);
   const [menuOpen, setMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -90,54 +123,10 @@ const HomeScreen = ({ navigation }) => {
     
     prefsArray.forEach((pref, index) => {
       try {
-        // Extract category and subDomain - support multiple formats
-        let category = null;
-        let subDomain = null;
-        
         console.log(`Processing preference ${index}:`, JSON.stringify(pref));
-        
-        // Case 1: {category: "string", subDomain: "string"}
-        if (pref && typeof pref.category === 'string') {
-          category = pref.category;
-          subDomain = pref.subDomain || pref.domain || pref.subdomain || pref.sub_domain;
-          console.log(`  Case 1: category=${category}, subDomain=${subDomain}`);
-        } 
-        // Case 2: {category: {category: "string"}, subDomain: "string"}
-        else if (pref && typeof pref.category === 'object' && pref.category && pref.category.category) {
-          category = pref.category.category;
-          subDomain = pref.subDomain || pref.domain || pref.subdomain || pref.sub_domain;
-          console.log(`  Case 2: category=${category}, subDomain=${subDomain}`);
-        }
-        // Case 3: Direct string (fallback)
-        else if (typeof pref === 'string') {
-          category = pref;
-          console.log(`  Case 3: category=${category}, no subDomain`);
-        }
-        // Case 4: Other possible structures
-        else if (pref && typeof pref === 'object') {
-          // Try to extract any recognizable category/subdomain data
-          const keys = Object.keys(pref);
-          console.log(`  Case 4: object with keys: ${keys.join(', ')}`);
-          
-          if (keys.includes('category')) {
-            if (typeof pref.category === 'string') {
-              category = pref.category;
-            } else if (typeof pref.category === 'object' && pref.category) {
-              // Try to extract from nested object
-              category = pref.category.category || pref.category.name || Object.values(pref.category)[0];
-            }
-          }
-          
-          if (keys.includes('subDomain') || keys.includes('subdomain') || keys.includes('sub_domain')) {
-            subDomain = pref.subDomain || pref.subdomain || pref.sub_domain;
-          }
-
-          if (!subDomain && keys.includes('domain')) {
-            subDomain = pref.domain;
-          }
-          
-          console.log(`  After Case 4 extraction: category=${category}, subDomain=${subDomain}`);
-        }
+        const normalized = normalisePreferenceEntry(pref);
+        const category = normalized?.category;
+        const subDomain = normalized?.subDomain;
         
         // Only include categories that have at least one usable subDomain.
         // Category-only prefs are not actionable (cannot quiz/log activity without subDomain).
@@ -163,7 +152,7 @@ const HomeScreen = ({ navigation }) => {
   // Check login status (just checks if token exists)
   const checkLoginStatus = async () => {
     try {
-      const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+      const sessionToken = await getStoredSessionToken();
       const loggedIn = !!sessionToken;
       setIsLoggedIn(loggedIn);
       return loggedIn;
@@ -174,8 +163,37 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const getDisplayName = (user) => {
+    const rawName = String(user?.name || "").trim();
+    if (rawName) {
+      return rawName.split(" ")[0];
+    }
+
+    const email = String(user?.email || "").trim();
+    if (email.includes("@")) {
+      return email.split("@")[0];
+    }
+
+    return "";
+  };
+
   // Get grouped preferences from current state or use default for anonymous users
-  const groupedPreferences = isLoggedIn ? processPreferences(preferences) : DEFAULT_CATEGORIES;
+  const savedGroupedPreferences = processPreferences(preferences);
+  const groupedPreferences = isLoggedIn ? savedGroupedPreferences : DEFAULT_CATEGORIES;
+  const savedSelections = preferences.reduce((acc, pref) => {
+    const normalized = normalisePreferenceEntry(pref);
+    if (!normalized) {
+      return acc;
+    }
+
+    const exists = acc.some(
+      (item) => item.category === normalized.category && item.subDomain === normalized.subDomain
+    );
+    if (!exists) {
+      acc.push(normalized);
+    }
+    return acc;
+  }, []);
 
   const fetchUserPreferences = async () => {
     setLoading(true);
@@ -186,13 +204,14 @@ const HomeScreen = ({ navigation }) => {
       
       if (loggedIn) {
         // User is logged in, fetch their preferences
-        const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+        const sessionToken = await getStoredSessionToken();
         
         // Double-check token still exists (might have been cleared)
         if (!sessionToken) {
           console.log("Token was cleared, skipping preferences fetch");
           setIsLoggedIn(false);
           setPreferences([]);
+          setUserName("");
           setLoading(false);
           return;
         }
@@ -259,10 +278,23 @@ const HomeScreen = ({ navigation }) => {
           console.log("No preferences found in response");
           setPreferences([]);
         }
+
+        try {
+          const userResponse = await axios.get(`${API_BASE_URL}/api/users/me`, {
+            headers: {
+              Authorization: `Bearer ${trimmedToken}`,
+            },
+          });
+          setUserName(getDisplayName(userResponse?.data?.user));
+        } catch (profileError) {
+          console.error("Error fetching user profile:", profileError);
+          setUserName("");
+        }
       } else {
         // User is not logged in, use default categories
         console.log("User not logged in, using default categories");
         setPreferences([]);
+        setUserName("");
       }
     } catch (error) {
       console.error("Error fetching preferences:", error);
@@ -276,17 +308,16 @@ const HomeScreen = ({ navigation }) => {
           "Token that failed:",
           trimmedToken ? trimmedToken.substring(0, 20) + "..." : "no token"
         );
-        await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
-          await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
-          await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
+        await clearStoredSessionToken();
         setIsLoggedIn(false);
         setPreferences([]);
+        setUserName("");
         setLoading(false); // Make sure loading is cleared
         // Show alert to user so they know what happened
         Alert.alert(
           "Authentication Error",
           "Your session could not be verified. Please log in again.",
-          [{ text: "OK" }]
+          [{ text: "OK", onPress: () => navigation.replace("Login") }]
         );
         return;
       }
@@ -296,6 +327,7 @@ const HomeScreen = ({ navigation }) => {
         console.log("Non-401 error, allowing user to continue with default categories");
       }
       setPreferences([]);
+      setUserName("");
     } finally {
       // Always clear loading state
       setLoading(false);
@@ -304,11 +336,10 @@ const HomeScreen = ({ navigation }) => {
 
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
+      await clearStoredSessionToken();
       setIsLoggedIn(false);
       Alert.alert("Logout Successful", "You have been logged out.");
-      // Stay on the same screen but show default categories
-      fetchUserPreferences();
+      navigation.replace("Login");
     } catch (error) {
       console.error("Logout Error:", error);
       Alert.alert("Error", "Failed to log out. Please try again.");
@@ -364,6 +395,80 @@ const HomeScreen = ({ navigation }) => {
     setLoginPromptVisible(true);
   };
 
+  const startSavedQuiz = (category, subDomain) => {
+    navigation.navigate("Quiz", {
+      categories: [category],
+      subDomain: subDomain || null,
+    });
+  };
+
+  const startCategoryQuiz = (category, subDomains = []) => {
+    const categorySelections = (subDomains || [])
+      .filter(Boolean)
+      .map((item) => ({
+        category,
+        subDomain: item,
+      }));
+
+    if (categorySelections.length > 0) {
+      navigation.navigate("Quiz", {
+        categories: [category],
+        selections: categorySelections,
+      });
+      return;
+    }
+
+    navigation.navigate("Quiz", {
+      categories: [category],
+    });
+  };
+
+  const handleQuizAll = () => {
+    if (!isLoggedIn) {
+      showLoginPrompt();
+      return;
+    }
+
+    if (savedSelections.length === 0) {
+      navigation.navigate("Categories");
+      return;
+    }
+
+    const categories = [...new Set(savedSelections.map((item) => item.category))];
+
+    navigation.navigate("Quiz", {
+      categories,
+      selections: savedSelections,
+    });
+  };
+
+  const quickActions = [
+    {
+      key: "quiz",
+      title: "Quiz All",
+      icon: "play-circle-outline",
+      onPress: handleQuizAll,
+    },
+    {
+      key: "games",
+      title: "Games",
+      icon: "game-controller-outline",
+      onPress: () => navigation.navigate("Games"),
+    },
+    {
+      key: "performance",
+      title: "Performance",
+      icon: "stats-chart-outline",
+      onPress: () => {
+        if (isLoggedIn) {
+          navigation.navigate("Performance");
+        } else {
+          showLoginPrompt();
+        }
+      },
+    },
+  ];
+
   // Group preferences by category
   const renderCategorySections = () => {
     if (Object.keys(groupedPreferences).length === 0) {
@@ -397,54 +502,55 @@ const HomeScreen = ({ navigation }) => {
       return (
         <View key={uniqueKey} style={ui.sectionCard}>
           <View style={styles.categoryHeader}>
-            <View style={styles.categoryIconContainer}>
-              <Text style={styles.categoryEmoji}>{emoji}</Text>
+            <View style={styles.categoryHeaderMain}>
+              <View style={styles.categoryIconContainer}>
+                <Text style={styles.categoryEmoji}>{emoji}</Text>
+              </View>
+              <View style={styles.categoryTitleWrap}>
+                <Text style={styles.categoryTitle}>{category}</Text>
+                <Text style={styles.categoryMeta}>
+                  {subDomains?.length || 0} saved {subDomains?.length === 1 ? "topic" : "topics"}
+                </Text>
+              </View>
             </View>
-            <Text style={styles.categoryTitle}>{category}</Text>
+          <TouchableOpacity
+              style={styles.categoryHeaderAction}
+              onPress={() => {
+                if (isLoggedIn) {
+                  console.log(`Starting quiz for category: ${category}`);
+                  startCategoryQuiz(category, subDomains);
+                } else {
+                  showLoginPrompt();
+                }
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Start quiz for ${category}`}
+            >
+              <Ionicons name="play" size={14} color={colors.brandDark} />
+              <Ionicons name="chevron-forward" size={14} color={colors.brandDark} />
+            </TouchableOpacity>
           </View>
           
-          {/* Start Quiz Button - moved below category name */}
-          <TouchableOpacity
-            style={styles.categoryButton}
-            onPress={() => {
-              if (isLoggedIn) {
-                console.log(`Starting quiz for category: ${category}`);
-                // Use first subDomain if available, otherwise just category
-                const firstSubDomain = subDomains && subDomains.length > 0 ? subDomains[0] : null;
-                navigation.navigate("RandomQuestionsScreen", {
-                  categories: [category],
-                  subDomain: firstSubDomain, // Pass first subDomain if available
-                });
-              } else {
-                showLoginPrompt();
-              }
-            }}
-          >
-            <Text style={styles.categoryButtonText}>Start Quiz</Text>
-          </TouchableOpacity>
-          
-          {/* Display subdomains if present */}
           {subDomains && subDomains.length > 0 ? (
             <View style={styles.subdomainContainer}>
-              <Text style={styles.subdomainLabel}>Subdomains:</Text>
+              <Text style={styles.subdomainLabel}>Select a topic to start a quiz!</Text>
               <View style={styles.subdomainList}>
                 {subDomains.map((subdomain, index) => (
                   <TouchableOpacity
                     key={`${category}-${subdomain}-${index}`}
-                    style={styles.subdomainItem}
+                    style={[ui.subdomainCard, styles.subdomainItem]}
                     onPress={() => {
                       if (isLoggedIn) {
                         console.log(`Starting quiz for ${category} - ${subdomain}`);
-                        navigation.navigate("RandomQuestionsScreen", {
-                          categories: [category],
-                          subDomain: subdomain
-                        });
+                        startSavedQuiz(category, subdomain);
                       } else {
                         showLoginPrompt();
                       }
                     }}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Start ${subdomain} quiz`}
                   >
-                    <Text style={styles.subdomainText}>{subdomain}</Text>
+                    <Text style={[ui.subdomainText, styles.subdomainText]}>{subdomain}</Text>
                   </TouchableOpacity>
                 ))}
               </View>
@@ -456,27 +562,6 @@ const HomeScreen = ({ navigation }) => {
           )}
         </View>
       );
-    });
-  };
-
-  const handleQuizAll = () => {
-    if (!isLoggedIn) {
-      showLoginPrompt();
-      return;
-    }
-    
-    // Check if there are any categories available
-    if (Object.keys(groupedPreferences).length === 0) {
-      Alert.alert("No Categories", "Please add some categories first.");
-      return;
-    }
-    
-    // Use the category names from grouped preferences
-    const categories = Object.keys(groupedPreferences);
-    console.log("Starting quiz with all categories:", categories);
-    
-    navigation.navigate("RandomQuestionsScreen", {
-      categories: categories,
     });
   };
 
@@ -506,15 +591,37 @@ const HomeScreen = ({ navigation }) => {
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-          {/* Explore Section */}
+          <View style={[ui.sectionCard, styles.heroCard, styles.contentMaxWidth]}>
+            <Text style={styles.heroTitle}>
+              {userName ? `Welcome back, ${userName}` : "Welcome back"}
+            </Text>
+          </View>
+
+          <View style={[styles.sectionHeader, styles.contentMaxWidth]}>
+            <Text style={styles.sectionTitle}>Quick access</Text>
+          </View>
+
+          <View style={[styles.quickGrid, styles.contentMaxWidth]}>
+            {quickActions.map((action) => (
+              <TouchableOpacity key={action.key} style={styles.quickCard} onPress={action.onPress}>
+                <View style={styles.quickIconWrap}>
+                  <Ionicons name={action.icon} size={22} color={colors.brandDark} />
+                </View>
+                <Text
+                  style={[
+                    styles.quickCardTitle,
+                    action.key === "performance" ? styles.quickCardTitleCompact : null,
+                    action.key === "quiz" ? styles.quickCardTitleTight : null,
+                  ]}
+                >
+                  {action.title}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
           <View style={[styles.sectionHeader, styles.contentMaxWidth]}>
             <Text style={styles.sectionTitle}>Explore</Text>
-            <TouchableOpacity 
-              style={styles.viewAllButton}
-              onPress={handleQuizAll}
-            >
-              <Text style={styles.viewAllText}>Random Quiz</Text>
-            </TouchableOpacity>
           </View>
           
           {/* Categories Sections */}
@@ -531,8 +638,8 @@ const HomeScreen = ({ navigation }) => {
               }
             }}
           >
-            <Text style={styles.addMoreButtonIcon}>{PLUS_ICON}</Text>
-            <Text style={styles.addMoreText}>Add More Categories</Text>
+            <Ionicons name="add-circle-outline" size={20} color={colors.brandDark} />
+            <Text style={styles.addMoreText}>Manage Categories</Text>
           </TouchableOpacity>
         </ScrollView>
       </Animated.View>
@@ -637,16 +744,57 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     color: colors.textSecondary,
   },
-  viewAllButton: {
-    backgroundColor: colors.brand,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
+  heroCard: {
+    marginTop: spacing.lg,
+    paddingVertical: spacing.xl,
   },
-  viewAllText: {
-    color: colors.white,
-    fontSize: type.bodySm,
-    fontWeight: "500",
+  heroTitle: {
+    fontSize: 30,
+    lineHeight: 38,
+    fontWeight: "800",
+    color: colors.textPrimary,
+  },
+  quickGrid: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    gap: spacing.sm,
+  },
+  quickCard: {
+    flex: 1,
+    minHeight: 118,
+    backgroundColor: colors.white,
+    borderRadius: 20,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    alignItems: "center",
+    justifyContent: "center",
+    ...shadow({ color: colors.brandShadow, offsetHeight: 4, opacity: 0.08, radius: 10, elevation: 2 }),
+  },
+  quickIconWrap: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: colors.brandTint,
+  },
+  quickCardTitle: {
+    marginTop: spacing.md,
+    fontSize: 15,
+    fontWeight: "800",
+    color: colors.textPrimary,
+    textAlign: "center",
+    lineHeight: 19,
+  },
+  quickCardTitleCompact: {
+    fontSize: 14,
+    lineHeight: 18,
+  },
+  quickCardTitleTight: {
+    fontSize: 14,
+    lineHeight: 17,
   },
   emptyState: {
     alignItems: "center",
@@ -666,23 +814,19 @@ const styles = StyleSheet.create({
   },
   addMoreButton: {
     backgroundColor: colors.surface,
-    borderRadius: 8,
-    padding: 16,
+    borderRadius: radii.lg,
+    padding: spacing.lg,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     marginTop: 24,
+    gap: spacing.sm,
     ...shadow({ color: colors.brand, offsetHeight: 4, opacity: 0.1, radius: 8, elevation: 2 }),
-  },
-  addMoreButtonIcon: {
-    fontSize: 20,
-    marginRight: 10,
-    color: colors.brand,
   },
   addMoreText: {
     fontSize: type.button,
-    fontWeight: "600",
-    color: colors.brand,
+    fontWeight: "700",
+    color: colors.brandDark,
   },
   overlay: {
     position: "absolute",
@@ -696,7 +840,14 @@ const styles = StyleSheet.create({
   categoryHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    justifyContent: "space-between",
+    gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  categoryHeaderMain: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
   },
   categoryIconContainer: {
     width: 48,
@@ -712,31 +863,39 @@ const styles = StyleSheet.create({
   },
   categoryTitle: {
     fontSize: 20,
-    fontWeight: "600",
+    fontWeight: "700",
     color: colors.textSecondary,
     textTransform: "capitalize",
   },
-  categoryButton: {
-    backgroundColor: colors.brand,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 20,
-    alignSelf: "flex-start",
-    marginBottom: 12,
+  categoryTitleWrap: {
+    flex: 1,
   },
-  categoryButtonText: {
-    color: colors.white,
-    fontSize: type.bodySm,
-    fontWeight: "500",
+  categoryMeta: {
+    marginTop: spacing.xs,
+    fontSize: type.caption,
+    color: colors.textMuted,
+    fontWeight: "600",
+  },
+  categoryHeaderAction: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+    flexDirection: "row",
+    backgroundColor: colors.brandTint,
+    borderWidth: 1,
+    borderColor: colors.brandBorder,
+    gap: 0,
   },
   subdomainContainer: {
-    marginTop: 16,
+    marginTop: spacing.sm,
   },
   subdomainLabel: {
-    fontSize: type.body,
+    fontSize: type.bodySm,
     fontWeight: "600",
     color: colors.textSecondary,
-    marginBottom: 8,
+    marginBottom: spacing.sm,
   },
   subdomainList: {
     flexDirection: "row",
@@ -744,20 +903,10 @@ const styles = StyleSheet.create({
     marginHorizontal: -4,
   },
   subdomainItem: {
-    backgroundColor: colors.brandTint,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 12,
-    margin: 6,
-    minWidth: "45%",
-    borderWidth: 1,
-    borderColor: colors.brandBorder,
+    justifyContent: "center",
     ...shadow({ color: colors.brandShadow, offsetHeight: 2, opacity: 0.2, radius: 3, elevation: 2 }),
   },
   subdomainText: {
-    color: '#7C3AED',
-    fontSize: type.bodySm,
-    fontWeight: "600",
     textAlign: "center",
   },
   noSubdomainsText: {
