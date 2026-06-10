@@ -62,24 +62,57 @@ const QuizScreen = ({ route, navigation }) => {
     questionStartAtRef.current = Date.now();
   }, [currentQuestionIndex, questions.length]);
 
+  const fetchQuestionsFromEndpoint = async (endpoint, params, headers = {}) => {
+    const response = await axios.get(`${API_BASE_URL}${endpoint}`, { params, headers });
+    return response.data.questions || [];
+  };
+
+  const getQuizRequestConfig = async () => {
+    const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
+    if (!sessionToken) {
+      return { endpoint: '/api/random-questions', headers: {} };
+    }
+    return {
+      endpoint: '/api/user-quiz',
+      headers: {
+        Authorization: `Bearer ${sessionToken}`,
+      },
+    };
+  };
+
   const fetchRandomQuestions = async () => {
     console.log('Fetching questions for categories:', categories?.join(','), 'subDomain:', subDomain);
     try {
+      const { endpoint, headers } = await getQuizRequestConfig();
+
       if (savedSelections.length > 0) {
         const responses = await Promise.all(
-          savedSelections.map((selection) =>
-            axios.get(`${API_BASE_URL}/api/random-questions`, {
-              params: {
-                categories: selection.category,
-                subDomain: selection.subDomain,
-              },
-            })
-          )
+          savedSelections.map(async (selection) => {
+            try {
+              return await fetchQuestionsFromEndpoint(
+                endpoint,
+                {
+                  categories: selection.category,
+                  subDomain: selection.subDomain,
+                },
+                headers
+              );
+            } catch (error) {
+              if (endpoint === '/api/user-quiz') {
+                return fetchQuestionsFromEndpoint(
+                  '/api/random-questions',
+                  {
+                    categories: selection.category,
+                    subDomain: selection.subDomain,
+                  }
+                );
+              }
+              throw error;
+            }
+          })
         );
 
-        const combinedQuestions = dedupeQuestions(
-          responses.flatMap((response) => response.data.questions || [])
-        );
+        const combinedQuestions = dedupeQuestions(responses.flat());
         const shuffledQuestions = combinedQuestions.sort(() => Math.random() - 0.5).slice(0, 10);
         setQuestions(shuffledQuestions);
         console.log(`Fetched ${shuffledQuestions.length} questions across ${savedSelections.length} saved selections`);
@@ -90,11 +123,18 @@ const QuizScreen = ({ route, navigation }) => {
       if (subDomain) {
         params.subDomain = subDomain;
       }
-      
-      const response = await axios.get(`${API_BASE_URL}/api/random-questions`, {
-        params: params,
-      });
-      const fetchedQuestions = response.data.questions || [];
+
+      let fetchedQuestions = [];
+      try {
+        fetchedQuestions = await fetchQuestionsFromEndpoint(endpoint, params, headers);
+      } catch (error) {
+        if (endpoint === '/api/user-quiz') {
+          fetchedQuestions = await fetchQuestionsFromEndpoint('/api/random-questions', params);
+        } else {
+          throw error;
+        }
+      }
+
       setQuestions(fetchedQuestions);
       console.log(`Fetched ${fetchedQuestions.length} questions`);
     } catch (error) {
@@ -105,27 +145,33 @@ const QuizScreen = ({ route, navigation }) => {
     }
   };
 
+  const postAttempt = async (sessionToken, payload) => {
+    await axios.post(`${API_BASE_URL}/api/trivia/attempts`, payload, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${sessionToken}`,
+      },
+    });
+  };
+
   const recordAttempt = async ({ questionId, selectedAnswer, timeTakenMs }) => {
     try {
       const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
       if (!sessionToken) return;
 
-      await axios.post(
-        `${API_BASE_URL}/api/trivia/attempts`,
-        {
-          questionId,
-          selectedAnswer,
-          timeTakenMs,
-        },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${sessionToken}`,
-          },
-        }
-      );
+      const payload = {
+        questionId,
+        selectedAnswer,
+        timeTakenMs,
+      };
+
+      try {
+        await postAttempt(sessionToken, payload);
+      } catch (firstError) {
+        await postAttempt(sessionToken, payload);
+      }
     } catch (e) {
-      // Intentionally silent: attempt logging shouldn't interrupt quiz UX.
+      console.warn('Attempt logging failed after retry:', e?.response?.data || e?.message);
     }
   };
 
