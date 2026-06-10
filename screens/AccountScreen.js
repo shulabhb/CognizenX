@@ -559,7 +559,7 @@ const AccountScreen = ({ navigation }) => {
           </Text>
 
           <View style={styles.settingsCard}>
-            <Text style={styles.settingsTitle}>Performance dashboard</Text>
+            <Text style={styles.settingsTitle}>Progress dashboard</Text>
             <Text style={styles.settingsBody}>
               Review accuracy, timing, and daily quiz trends in a separate performance screen.
             </Text>

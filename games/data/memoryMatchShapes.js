@@ -1,0 +1,18 @@
+export const MEMORY_MATCH_SHAPES = [
+  { id: 'circle', shape: 'circle', tone: 'accent' },
+  { id: 'square', shape: 'square', tone: 'muted' },
+  { id: 'diamond', shape: 'diamond', tone: 'accentStrong' },
+  { id: 'triangle', shape: 'triangle', tone: 'muted' },
+  { id: 'cross', shape: 'cross', tone: 'accent' },
+  { id: 'line-h', shape: 'line-h', tone: 'muted' },
+  { id: 'line-v', shape: 'line-v', tone: 'accentSoft' },
+  { id: 'ring', shape: 'ring', tone: 'muted' },
+  { id: 'plus', shape: 'plus', tone: 'accent' },
+  { id: 'arc', shape: 'arc', tone: 'accentStrong' },
+  { id: 'circle-lg', shape: 'circle', tone: 'accentSoft', sizeVariant: 'large' },
+  { id: 'square-lg', shape: 'square', tone: 'accentStrong', sizeVariant: 'large' },
+  { id: 'diamond-lg', shape: 'diamond', tone: 'muted', sizeVariant: 'large' },
+  { id: 'triangle-lg', shape: 'triangle', tone: 'accent', sizeVariant: 'large' },
+  { id: 'cross-lg', shape: 'cross', tone: 'muted', sizeVariant: 'large' },
+  { id: 'line-h-lg', shape: 'line-h', tone: 'accent', sizeVariant: 'large' },
+];

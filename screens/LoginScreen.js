@@ -155,7 +155,7 @@ const LoginScreen = ({ navigation }) => {
             { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
           ]}>
             <View style={styles.headerContainer}>
-              <Text style={styles.title}>CognizenX</Text>
+              <Text style={styles.title}>MindMitra</Text>
               <Text style={styles.subtitle}>Welcome Back</Text>
               <Text style={styles.description}>Sign in to continue.</Text>
             </View>

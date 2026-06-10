@@ -4,40 +4,39 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   StatusBar,
   SafeAreaView,
   Alert,
   PanResponder,
   Animated,
+  AppState,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
 import { colors, radii, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
+import { gameColors } from '../styles/gameTheme';
+import GameIcon from '../components/games/GameIcon';
+import useGameSession from '../hooks/useGameSession';
+import {
+  GRID_SIZE,
+  GRID_COLS,
+  GRID_ROWS,
+  BOARD_PADDING,
+  ACTUAL_BOARD_WIDTH,
+  ACTUAL_BOARD_HEIGHT,
+  DIRECTIONS,
+  CALM_MODE,
+  HIGH_SCORE_KEY_TOUCH,
+  initializeSnake,
+  generateFood as createFood,
+  checkCollision,
+  wrapHead,
+  isReverseDirection,
+} from '../games/snake/snakeEngine';
 
-const { width, height } = Dimensions.get('window');
-
-// Gameplay constants optimized for touch
-const GRID_SIZE = 24;
-const TICK_MS = 150; // medium speed tick for touch gameplay
-const BOARD_PADDING = 20;
-
-const BOARD_WIDTH = width - (BOARD_PADDING * 2);
-const BOARD_HEIGHT = height * 0.55;
-const GRID_COLS = Math.floor(BOARD_WIDTH / GRID_SIZE);
-const GRID_ROWS = Math.floor(BOARD_HEIGHT / GRID_SIZE);
-const ACTUAL_BOARD_WIDTH = GRID_COLS * GRID_SIZE;
-const ACTUAL_BOARD_HEIGHT = GRID_ROWS * GRID_SIZE;
-
-const DIRECTIONS = {
-  UP: { x: 0, y: -1 },
-  DOWN: { x: 0, y: 1 },
-  LEFT: { x: -1, y: 0 },
-  RIGHT: { x: 1, y: 0 }
-};
-
-// Touch control constants
-const DEADZONE = 2; // Smaller deadzone for more responsive touch
+const TICK_MS = CALM_MODE.tickMs;
+const DEADZONE = 2;
 
 const SnakeTouch = () => {
   const navigation = useNavigation();
@@ -50,58 +49,25 @@ const SnakeTouch = () => {
   const [food, setFood] = useState({ x: 0, y: 0 });
   const [direction, setDirection] = useState(DIRECTIONS.RIGHT);
   const [gameOverAnimation, setGameOverAnimation] = useState(false);
-  const [snakeColor, setSnakeColor] = useState('#64748B');
-  const [foodColor, setFoodColor] = useState('#FCA5A5');
-  const [foodShape, setFoodShape] = useState('●');
-  const [wallsEnabled] = useState(false); // walls disabled by default (wrap-around)
+  const [snakeColor, setSnakeColor] = useState(gameColors.snakeBody);
+  const [foodColor, setFoodColor] = useState(gameColors.snakeTarget);
+  const [foodShape, setFoodShape] = useState('');
+  const [wallsEnabled] = useState(CALM_MODE.wallsEnabled);
   const [isTouching, setIsTouching] = useState(false);
+  const { startSession, completeSession } = useGameSession('snake_touch_calm', 'easy');
+  const sessionCompletedRef = useRef(false);
+  const sessionActiveRef = useRef(false);
+  const lastMilestoneRef = useRef(0);
 
   const gameLoopRef = useRef(null);
   const directionRef = useRef(DIRECTIONS.RIGHT);
   const lastTouchRef = useRef(null);
 
-  // Reuse exact same helper functions as original Snake game
-  const initializeSnake = () => {
-    const startX = Math.floor(GRID_COLS / 2);
-    const startY = Math.floor(GRID_ROWS / 2);
-    return [
-      { x: startX, y: startY },
-      { x: startX - 1, y: startY },
-      { x: startX - 2, y: startY }
-    ];
-  };
-
-  const foodItems = [
-    { color: '#EF4444', shape: '●', name: 'Cherry' },
-    { color: '#F59E0B', shape: '▲', name: 'Triangle' },
-    { color: '#10B981', shape: '■', name: 'Square' },
-    { color: '#3B82F6', shape: '◆', name: 'Diamond' },
-    { color: '#8B5CF6', shape: '★', name: 'Star' },
-    { color: '#EC4899', shape: '♥', name: 'Heart' },
-    { color: '#06B6D4', shape: '♦', name: 'Club' },
-    { color: '#84CC16', shape: '▲', name: 'Leaf' },
-  ];
-
   const generateFood = (snakeBody) => {
-    let newFood;
-    do {
-      newFood = {
-        x: Math.floor(Math.random() * GRID_COLS),
-        y: Math.floor(Math.random() * GRID_ROWS)
-      };
-    } while (snakeBody.some(segment => segment.x === newFood.x && segment.y === newFood.y));
-
-    const randomFoodItem = foodItems[Math.floor(Math.random() * foodItems.length)];
-    setFoodColor(randomFoodItem.color);
-    setFoodShape(randomFoodItem.shape);
-
-    return newFood;
-  };
-
-  const checkCollision = (head, snakeBody, willGrow = false) => {
-    // With walls disabled, only self-collision ends the run
-    const bodyToCheck = willGrow ? snakeBody : snakeBody.slice(0, -1);
-    return bodyToCheck.some(segment => segment.x === head.x && segment.y === head.y);
+    const nextFood = createFood(snakeBody);
+    setFoodColor(nextFood.color);
+    setFoodShape(nextFood.shape);
+    return nextFood.position;
   };
 
   // Touch-based direction control
@@ -166,15 +132,17 @@ const SnakeTouch = () => {
       head.x += directionRef.current.x;
       head.y += directionRef.current.y;
 
-      // Smooth wrap-around movement (no walls)
-      if (head.x < 0) head.x = GRID_COLS - 1;
-      if (head.x >= GRID_COLS) head.x = 0;
-      if (head.y < 0) head.y = GRID_ROWS - 1;
-      if (head.y >= GRID_ROWS) head.y = 0;
+      Object.assign(head, wrapHead(head));
 
       const willGrow = head.x === food.x && head.y === food.y;
 
-      if (checkCollision(head, newSnake, willGrow)) {
+      if (checkCollision(head, newSnake, wallsEnabled, willGrow)) {
+        if (CALM_MODE.softCollision) {
+          const resetSnake = initializeSnake();
+          setSnakeColor(gameColors.snakeBody);
+          setFood(generateFood(resetSnake));
+          return resetSnake;
+        }
         setSnakeColor('#EF4444');
         setGameOverAnimation(true);
         setGameOver(true);
@@ -205,11 +173,27 @@ const SnakeTouch = () => {
     }
   }, [gameStarted, gameOver, isTouching, gameLoop]);
 
+  const endSession = useCallback(async (completed = true) => {
+    if (sessionCompletedRef.current || !sessionActiveRef.current) return;
+    sessionCompletedRef.current = true;
+    sessionActiveRef.current = false;
+    await completeSession({
+      finalScore: score,
+      finalMoves: snake.length,
+      completed,
+      extraMetrics: { highScore: Math.max(score, highScore) },
+    });
+  }, [completeSession, score, snake.length, highScore]);
+
   const startGame = () => {
     const initialSnake = initializeSnake();
+    sessionCompletedRef.current = false;
+    sessionActiveRef.current = true;
+    lastMilestoneRef.current = 0;
     setSnake(initialSnake);
     setFood(generateFood(initialSnake));
     setScore(0);
+    startSession();
     setDirection(DIRECTIONS.RIGHT);
     directionRef.current = DIRECTIONS.RIGHT;
     setGameStarted(true);
@@ -217,9 +201,9 @@ const SnakeTouch = () => {
     setGameOverAnimation(false);
     setIsPaused(false);
     setIsTouching(false);
-    setSnakeColor('#64748B');
-    setFoodColor('#FCA5A5');
-    setFoodShape('●');
+    setSnakeColor(gameColors.snakeBody);
+    setFoodColor(gameColors.snakeTarget);
+    setFoodShape('');
     // Kick an immediate tick on touch start for responsiveness
   };
 
@@ -238,9 +222,9 @@ const SnakeTouch = () => {
     setDirection(DIRECTIONS.RIGHT);
     directionRef.current = DIRECTIONS.RIGHT;
     setIsTouching(false);
-    setSnakeColor('#64748B');
-    setFoodColor('#FCA5A5');
-    setFoodShape('●');
+    setSnakeColor(gameColors.snakeBody);
+    setFoodColor(gameColors.snakeTarget);
+    setFoodShape('');
     if (gameLoopRef.current) {
       clearInterval(gameLoopRef.current);
     }
@@ -249,11 +233,18 @@ const SnakeTouch = () => {
   const handleBackPress = () => {
     if (gameStarted && !gameOver) {
       Alert.alert(
-        "Pause Game",
-        "Are you sure you want to leave? Your progress will be lost.",
+        'Leave activity?',
+        'Your current progress will be saved if you leave now.',
         [
-          { text: "Continue Playing", style: "cancel" },
-          { text: "Leave", style: "destructive", onPress: () => navigation.goBack() }
+          { text: 'Keep playing', style: 'cancel' },
+          {
+            text: 'Leave',
+            style: 'destructive',
+            onPress: async () => {
+              await endSession(true);
+              navigation.goBack();
+            },
+          },
         ]
       );
     } else {
@@ -261,48 +252,75 @@ const SnakeTouch = () => {
     }
   };
 
-  // Update high score
   useEffect(() => {
-    if (gameOver && score > highScore) {
-      setHighScore(score);
+    AsyncStorage.getItem(HIGH_SCORE_KEY_TOUCH).then((value) => {
+      if (value) setHighScore(Number(value) || 0);
+    });
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active' && gameStarted && !gameOver) {
+        setIsPaused(true);
+        setIsTouching(false);
+      }
+    });
+    return () => subscription.remove();
+  }, [gameStarted, gameOver]);
+
+  useEffect(() => {
+    if (gameOver) {
+      if (score > highScore) {
+        setHighScore(score);
+        AsyncStorage.setItem(HIGH_SCORE_KEY_TOUCH, String(score));
+      }
+      endSession(true);
     }
-  }, [gameOver, score, highScore]);
+  }, [gameOver, score, highScore, endSession]);
+
+  useEffect(() => {
+    if (!gameStarted || score === 0 || score % 50 !== 0) return;
+    if (score === lastMilestoneRef.current) return;
+    lastMilestoneRef.current = score;
+    endSession(true).then(() => {
+      sessionCompletedRef.current = false;
+      sessionActiveRef.current = true;
+      startSession();
+    });
+  }, [score, gameStarted, endSession, startSession]);
+
+  useEffect(() => () => {
+    if (gameLoopRef.current) clearInterval(gameLoopRef.current);
+  }, []);
 
   // Render game board (reuse exact same logic as original Snake)
   const renderGameBoard = () => {
     const board = [];
 
-    // Food
+    const targetSize = GRID_SIZE * 0.45;
+    const targetOffset = (GRID_SIZE - targetSize) / 2;
     board.push(
       <View
         key="food"
+        accessibilityLabel="Target"
         style={[
           styles.food,
           {
-            left: food.x * GRID_SIZE,
-            top: food.y * GRID_SIZE,
+            left: food.x * GRID_SIZE + targetOffset,
+            top: food.y * GRID_SIZE + targetOffset,
             backgroundColor: foodColor,
-            borderWidth: 3,
-            borderColor: '#FFFFFF',
-            shadowColor: foodColor,
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.5,
-            shadowRadius: 6,
-            elevation: 4,
-            width: GRID_SIZE + 8,
-            height: GRID_SIZE + 8,
-            borderRadius: (GRID_SIZE + 8) / 2,
+            width: targetSize,
+            height: targetSize,
+            borderRadius: targetSize / 2,
           },
         ]}
-      >
-        <Text style={styles.foodText}>{foodShape}</Text>
-      </View>
+      />
     );
 
     snake.forEach((seg, i) => {
       const isHead = i === 0;
       const isTail = i === snake.length - 1;
-      const baseColor = gameOverAnimation ? '#EF4444' : snakeColor;
+      const baseColor = gameOverAnimation ? gameColors.snakeBody : snakeColor;
 
       let segmentStyle = {};
       let segmentContent = null;
@@ -386,7 +404,7 @@ const SnakeTouch = () => {
         <TouchableOpacity onPress={handleBackPress} style={ui.iconButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Snake Touch</Text>
+        <Text style={styles.headerTitle}>Touch snake game</Text>
         <View style={ui.headerSpacer} />
       </View>
 
@@ -410,10 +428,10 @@ const SnakeTouch = () => {
       <View style={styles.gameContainer}>
         {!gameStarted ? (
           <View style={styles.startScreen}>
-            <Text style={styles.gameIcon}>👆</Text>
-            <Text style={styles.gameTitle}>Touch Snake</Text>
+            <GameIcon name="hand-left-outline" size={28} />
+            <Text style={styles.gameTitle}>Touch snake game</Text>
             <View style={styles.subtleInstructions}>
-              <Text style={styles.instructionText}>Touch and drag to guide • Eat to grow • No auto-movement • Avoid moving into yourself</Text>
+              <Text style={styles.instructionText}>Touch and drag to guide the snake at a steady pace.</Text>
             </View>
             <TouchableOpacity style={styles.startButton} onPress={startGame}>
               <Text style={styles.startButtonText}>Start</Text>
@@ -423,8 +441,7 @@ const SnakeTouch = () => {
           </View>
         ) : gameOver ? (
           <View style={styles.gameOverScreen}>
-            <Text style={styles.gameOverIcon}>💫</Text>
-            <Text style={styles.gameOverTitle}>Well Done!</Text>
+            <Text style={styles.gameOverTitle}>Pause point</Text>
             <Text style={styles.finalScore}>Score {score}</Text>
             {score === highScore && score > 0 && (
               <Text style={styles.newHighScore}>New Best!</Text>
@@ -460,7 +477,7 @@ const SnakeTouch = () => {
                 styles.touchStatusText,
                 isTouching ? styles.touchStatusActive : styles.touchStatusInactive
               ]}>
-                {isTouching ? '🎯 Touch Active' : '⏸️ Touch to move'}
+                {isTouching ? 'Touch active' : 'Touch to move'}
               </Text>
             </View>
           </View>
@@ -473,7 +490,7 @@ const SnakeTouch = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.slate100,
+    backgroundColor: gameColors.canvas,
   },
   header: {
     backgroundColor: colors.slate100,
@@ -519,11 +536,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  gameIcon: {
-    fontSize: 60,
-    marginBottom: 16,
-  },
   gameTitle: {
+    marginTop: spacing.lg,
     fontSize: 28,
     fontWeight: "500",
     color: colors.slate600,

@@ -1,4 +1,4 @@
-// API Configuration for CognigenX
+// API Configuration for MindMitra
 // This matches the configuration used by the App Store version
 
 export const API_CONFIG = {

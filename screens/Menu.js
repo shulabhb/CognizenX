@@ -36,7 +36,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
     ...(isLoggedIn ? [{ label: 'Home', icon: 'home-outline', action: () => navigation.navigate("Home") }] : []),
     ...(isLoggedIn ? [{ label: 'Categories', icon: 'grid-outline', action: () => navigation.navigate("Categories") }] : []),
     { label: 'Games', icon: 'game-controller-outline', action: () => navigation.navigate("Games") },
-    ...(isLoggedIn ? [{ label: 'Performance', icon: 'stats-chart-outline', action: () => navigation.navigate("Performance") }] : []),
+    ...(isLoggedIn ? [{ label: 'Progress', icon: 'stats-chart-outline', action: () => navigation.navigate("Performance") }] : []),
     ...(isLoggedIn
       ? [{ label: 'Account', icon: 'person-circle-outline', action: () => navigation.navigate("Account") }]
       : [{ label: 'Log In / Sign Up', icon: 'log-in-outline', action: () => navigation.navigate("Login") }]),

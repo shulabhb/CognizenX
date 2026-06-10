@@ -448,7 +448,7 @@ const HomeScreen = ({ navigation }) => {
     },
     {
       key: "performance",
-      title: "Performance",
+      title: "Progress",
       icon: "stats-chart-outline",
       onPress: () => {
         if (isLoggedIn) {
@@ -581,7 +581,7 @@ const HomeScreen = ({ navigation }) => {
           <TouchableOpacity onPress={toggleMenu} style={ui.iconButton}>
             <Text style={styles.menuIconText}>{MENU_ICON}</Text>
           </TouchableOpacity>
-          <Text style={ui.headerTitleLg}>CognizenX</Text>
+          <Text style={ui.headerTitleLg}>MindMitra</Text>
           <View style={ui.headerSpacer} />
         </View>
 
@@ -603,11 +603,10 @@ const HomeScreen = ({ navigation }) => {
                   <Ionicons name={action.icon} size={22} color={colors.brandDark} />
                 </View>
                 <Text
-                  style={[
-                    styles.quickCardTitle,
-                    action.key === "performance" ? styles.quickCardTitleCompact : null,
-                    action.key === "quiz" ? styles.quickCardTitleTight : null,
-                  ]}
+                  style={styles.quickCardTitle}
+                  numberOfLines={1}
+                  adjustsFontSizeToFit
+                  minimumFontScale={0.85}
                 >
                   {action.title}
                 </Text>
@@ -777,19 +776,12 @@ const styles = StyleSheet.create({
   },
   quickCardTitle: {
     marginTop: spacing.md,
+    width: "100%",
     fontSize: 15,
     fontWeight: "800",
     color: colors.textPrimary,
     textAlign: "center",
     lineHeight: 19,
-  },
-  quickCardTitleCompact: {
-    fontSize: 14,
-    lineHeight: 18,
-  },
-  quickCardTitleTight: {
-    fontSize: 14,
-    lineHeight: 17,
   },
   emptyState: {
     alignItems: "center",

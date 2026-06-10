@@ -4,55 +4,46 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Dimensions,
   StatusBar,
   SafeAreaView,
   Alert,
   PanResponder,
   Animated,
-  Easing
+  Easing,
+  AppState,
 } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { colors, radii, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
+import { gameColors } from '../styles/gameTheme';
+import { useReduceMotion } from '../styles/gameMotion';
+import GameIcon from '../components/games/GameIcon';
+import useGameSession from '../hooks/useGameSession';
+import {
+  GRID_SIZE,
+  GRID_COLS,
+  GRID_ROWS,
+  BOARD_PADDING,
+  ACTUAL_BOARD_WIDTH,
+  ACTUAL_BOARD_HEIGHT,
+  DIRECTIONS,
+  CALM_MODE,
+  HIGH_SCORE_KEY_SWIPE,
+  initializeSnake,
+  generateFood as createFood,
+  checkCollision,
+  wrapHead,
+  isReverseDirection,
+} from '../games/snake/snakeEngine';
 
-const { width, height } = Dimensions.get('window');
-
-// Game constants
-const GRID_SIZE = 24; // Size of each grid cell - bigger for larger snake and food
-const INITIAL_SPEED = 200; // Initial speed in milliseconds - faster for smooth flow
-const SPEED_DECREASE = 8; // Speed decrease per food eaten
-const MIN_SPEED = 80; // Minimum speed - faster for smooth flow
-const BOARD_PADDING = 20;
-const POINTS_PER_LEVEL = 50; // Points needed to advance to next level
-
-// Level configurations
-const LEVEL_CONFIGS = {
-  Beginner: { initialSpeed: 300, speedDecrease: 6, minSpeed: 120 },
-  Intermediate: { initialSpeed: 200, speedDecrease: 8, minSpeed: 80 },
-  Expert: { initialSpeed: 150, speedDecrease: 10, minSpeed: 60 }
-};
-
-// Smooth movement constants - removed MOVEMENT_DURATION for seamless flow
-
-// Calculate game board dimensions
-const BOARD_WIDTH = width - (BOARD_PADDING * 2);
-const BOARD_HEIGHT = height * 0.55;
-const GRID_COLS = Math.floor(BOARD_WIDTH / GRID_SIZE);
-const GRID_ROWS = Math.floor(BOARD_HEIGHT / GRID_SIZE);
-const ACTUAL_BOARD_WIDTH = GRID_COLS * GRID_SIZE;
-const ACTUAL_BOARD_HEIGHT = GRID_ROWS * GRID_SIZE;
-
-// Directions
-const DIRECTIONS = {
-  UP: { x: 0, y: -1 },
-  DOWN: { x: 0, y: 1 },
-  LEFT: { x: -1, y: 0 },
-  RIGHT: { x: 1, y: 0 }
-};
+const INITIAL_SPEED = CALM_MODE.tickMs;
+const POINTS_PER_LEVEL = 50;
 
 const SnakeGameScreen = () => {
   const navigation = useNavigation();
+  const reduceMotion = useReduceMotion();
   const [score, setScore] = useState(0);
   const [highScore, setHighScore] = useState(0);
   const [level, setLevel] = useState(1);
@@ -64,11 +55,14 @@ const SnakeGameScreen = () => {
   const [nextDirection, setNextDirection] = useState(DIRECTIONS.RIGHT);
   const [speed, setSpeed] = useState(INITIAL_SPEED);
   const [gameOverAnimation, setGameOverAnimation] = useState(false);
-  const [snakeColor, setSnakeColor] = useState('#64748B'); // Default snake color
-  const [foodColor, setFoodColor] = useState('#FCA5A5'); // Default food color
-  const [foodShape, setFoodShape] = useState('●'); // Default food shape
-  const [gameLevel, setGameLevel] = useState('Beginner'); // Beginner, Intermediate, Expert
-  const [wallsEnabled, setWallsEnabled] = useState(true); // Wall collision on/off
+  const [snakeColor, setSnakeColor] = useState(gameColors.snakeBody);
+  const [foodColor, setFoodColor] = useState(gameColors.snakeTarget);
+  const [foodShape, setFoodShape] = useState('');
+  const [wallsEnabled, setWallsEnabled] = useState(CALM_MODE.wallsEnabled);
+  const { startSession, completeSession } = useGameSession('snake_calm', 'easy');
+  const sessionCompletedRef = useRef(false);
+  const sessionActiveRef = useRef(false);
+  const lastMilestoneRef = useRef(0);
   
   // Smooth per-tick interpolation (prev → current)
   const prevSnakeRef = useRef([]);
@@ -80,56 +74,11 @@ const SnakeGameScreen = () => {
   const scaleAnim = useRef(new Animated.Value(1)).current;
   const snakeColorAnim = useRef(new Animated.Value(0)).current;
 
-  // Initialize snake
-  const initializeSnake = () => {
-    const startX = Math.floor(GRID_COLS / 2);
-    const startY = Math.floor(GRID_ROWS / 2);
-    return [
-      { x: startX, y: startY },
-      { x: startX - 1, y: startY },
-      { x: startX - 2, y: startY }
-    ];
-  };
-
-  // Food colors and shapes array
-  const foodItems = [
-    { color: '#EF4444', shape: '●', name: 'Cherry' }, // Red circle
-    { color: '#F59E0B', shape: '▲', name: 'Triangle' }, // Orange triangle
-    { color: '#10B981', shape: '■', name: 'Square' }, // Green square
-    { color: '#3B82F6', shape: '◆', name: 'Diamond' }, // Blue diamond
-    { color: '#8B5CF6', shape: '★', name: 'Star' }, // Purple star
-    { color: '#EC4899', shape: '♥', name: 'Heart' }, // Pink heart
-    { color: '#06B6D4', shape: '♦', name: 'Club' }, // Cyan club
-    { color: '#84CC16', shape: '▲', name: 'Leaf' }, // Lime triangle
-  ];
-
-  // Generate random food position with random color and shape
   const generateFood = (snakeBody) => {
-    let newFood;
-    do {
-      newFood = {
-        x: Math.floor(Math.random() * GRID_COLS),
-        y: Math.floor(Math.random() * GRID_ROWS)
-      };
-    } while (snakeBody.some(segment => segment.x === newFood.x && segment.y === newFood.y));
-
-    // Set random food item (color and shape)
-    const randomFoodItem = foodItems[Math.floor(Math.random() * foodItems.length)];
-    setFoodColor(randomFoodItem.color);
-    setFoodShape(randomFoodItem.shape);
-
-    return newFood;
-  };
-
-  // Check collision
-  const checkCollision = (head, snakeBody, willGrow = false) => {
-    // Wall collision only when walls are enabled
-    if (wallsEnabled && (head.x < 0 || head.x >= GRID_COLS || head.y < 0 || head.y >= GRID_ROWS)) {
-      return true;
-    }
-    // Check self collision (ignore tail if it will move this tick)
-    const bodyToCheck = willGrow ? snakeBody : snakeBody.slice(0, -1);
-    return bodyToCheck.some(segment => segment.x === head.x && segment.y === head.y);
+    const nextFood = createFood(snakeBody);
+    setFoodColor(nextFood.color);
+    setFoodShape(nextFood.shape);
+    return nextFood.position;
   };
 
   // Helper to convert grid coordinates to pixels
@@ -165,30 +114,35 @@ const SnakeGameScreen = () => {
       head.x += currentDirection.x;
       head.y += currentDirection.y;
 
-      // Handle smooth wall wrapping only when walls are disabled
       if (!wallsEnabled) {
-        if (head.x < 0) head.x = GRID_COLS - 1;
-        if (head.x >= GRID_COLS) head.x = 0;
-        if (head.y < 0) head.y = GRID_ROWS - 1;
-        if (head.y >= GRID_ROWS) head.y = 0;
+        Object.assign(head, wrapHead(head));
       }
 
-      // check if will grow this tick
       const willGrow = head.x === food.x && head.y === food.y;
 
-      // collision (wall or self)
-      if (checkCollision(head, newSnake, willGrow)) {
-        setSnakeColor('#EF4444');
+      if (checkCollision(head, newSnake, wallsEnabled, willGrow)) {
+        if (CALM_MODE.softCollision) {
+          const resetSnake = initializeSnake();
+          setSnakeColor(gameColors.snakeBody);
+          setFood(generateFood(resetSnake));
+          return resetSnake;
+        }
+
+        setSnakeColor(gameColors.snakeBody);
         setGameOverAnimation(true);
-        Animated.parallel([
-          Animated.timing(fadeAnim, { toValue: 0.2, duration: 1000, useNativeDriver: true }),
-          Animated.sequence([
-            Animated.timing(scaleAnim, { toValue: 1.2, duration: 300, useNativeDriver: true }),
-            Animated.timing(scaleAnim, { toValue: 0.8, duration: 300, useNativeDriver: true }),
-            Animated.timing(scaleAnim, { toValue: 1.1, duration: 200, useNativeDriver: true }),
-            Animated.timing(scaleAnim, { toValue: 0.9, duration: 200, useNativeDriver: true }),
-          ]),
-        ]).start(() => setGameOver(true));
+        if (reduceMotion) {
+          setGameOver(true);
+        } else {
+          Animated.parallel([
+            Animated.timing(fadeAnim, { toValue: 0.2, duration: 1000, useNativeDriver: true }),
+            Animated.sequence([
+              Animated.timing(scaleAnim, { toValue: 1.2, duration: 300, useNativeDriver: true }),
+              Animated.timing(scaleAnim, { toValue: 0.8, duration: 300, useNativeDriver: true }),
+              Animated.timing(scaleAnim, { toValue: 1.1, duration: 200, useNativeDriver: true }),
+              Animated.timing(scaleAnim, { toValue: 0.9, duration: 200, useNativeDriver: true }),
+            ]),
+          ]).start(() => setGameOver(true));
+        }
         return prevSnake;
       }
 
@@ -204,9 +158,9 @@ const SnakeGameScreen = () => {
         });
         setSnakeColor(foodColor);
         setFood(generateFood(newSnake));
-        // Increase speed based on level
-        const levelConfig = LEVEL_CONFIGS[gameLevel];
-        setSpeed(prev => Math.max(levelConfig.minSpeed, prev - levelConfig.speedDecrease));
+        if (!CALM_MODE.softCollision) {
+          setSpeed((prev) => Math.max(CALM_MODE.minSpeed, prev - CALM_MODE.speedDecrease));
+        }
       } else {
         newSnake.pop(); // regular move
       }
@@ -217,7 +171,7 @@ const SnakeGameScreen = () => {
 
   // Start game loop
   useEffect(() => {
-    if (gameStarted && !gameOver) {
+    if (gameStarted && !gameOver && !isPaused) {
       gameLoopRef.current = setInterval(gameLoop, speed);
       return () => {
         if (gameLoopRef.current) {
@@ -225,14 +179,14 @@ const SnakeGameScreen = () => {
         }
       };
     }
-  }, [gameStarted, gameOver, gameLoop, speed]);
+  }, [gameStarted, gameOver, isPaused, gameLoop, speed]);
 
   // Handle direction change
   const changeDirection = (newDirection) => {
     if (gameStarted && !gameOver && !isPaused) {
       // Prevent reverse direction
       const currentDir = lastDirectionRef.current;
-      if (currentDir.x === -newDirection.x && currentDir.y === -newDirection.y) {
+      if (isReverseDirection(currentDir, newDirection)) {
         return;
       }
       setNextDirection(newDirection);
@@ -277,14 +231,29 @@ const SnakeGameScreen = () => {
     },
   });
 
+  const endSession = useCallback(async (completed = true) => {
+    if (sessionCompletedRef.current || !sessionActiveRef.current) return;
+    sessionCompletedRef.current = true;
+    sessionActiveRef.current = false;
+    await completeSession({
+      finalScore: score,
+      finalMoves: snake.length,
+      completed,
+      extraMetrics: { highScore: Math.max(score, highScore), level },
+    });
+  }, [completeSession, score, snake.length, highScore, level]);
+
   const startGame = () => {
-    const levelConfig = LEVEL_CONFIGS[gameLevel];
     const initialSnake = initializeSnake();
+    sessionCompletedRef.current = false;
+    sessionActiveRef.current = true;
+    lastMilestoneRef.current = 0;
     setSnake(initialSnake);
     setFood(generateFood(initialSnake));
     setScore(0);
     setLevel(1);
-    setSpeed(levelConfig.initialSpeed);
+    setSpeed(INITIAL_SPEED);
+    startSession();
     setNextDirection(DIRECTIONS.RIGHT);
     lastDirectionRef.current = DIRECTIONS.RIGHT;
     setGameStarted(true);
@@ -292,9 +261,9 @@ const SnakeGameScreen = () => {
     setGameOverAnimation(false);
     setIsPaused(false);
     // Reset colors to default
-    setSnakeColor('#64748B');
-    setFoodColor('#FCA5A5');
-    setFoodShape('●');
+    setSnakeColor(gameColors.snakeBody);
+    setFoodColor(gameColors.snakeTarget);
+    setFoodShape('');
     // Reset animations
     fadeAnim.setValue(1);
     scaleAnim.setValue(1);
@@ -318,9 +287,9 @@ const SnakeGameScreen = () => {
     lastDirectionRef.current = DIRECTIONS.RIGHT;
     setSpeed(INITIAL_SPEED);
     // Reset colors to default
-    setSnakeColor('#64748B');
-    setFoodColor('#FCA5A5');
-    setFoodShape('●');
+    setSnakeColor(gameColors.snakeBody);
+    setFoodColor(gameColors.snakeTarget);
+    setFoodShape('');
     // Reset animations
     fadeAnim.setValue(1);
     scaleAnim.setValue(1);
@@ -333,11 +302,18 @@ const SnakeGameScreen = () => {
   const handleBackPress = () => {
     if (gameStarted && !gameOver) {
       Alert.alert(
-        "Pause Game",
-        "Are you sure you want to leave? Your progress will be lost.",
+        'Leave activity?',
+        'Your current progress will be saved if you leave now.',
         [
-          { text: "Continue Playing", style: "cancel" },
-          { text: "Leave", style: "destructive", onPress: () => navigation.goBack() }
+          { text: 'Keep playing', style: 'cancel' },
+          {
+            text: 'Leave',
+            style: 'destructive',
+            onPress: async () => {
+              await endSession(true);
+              navigation.goBack();
+            },
+          },
         ]
       );
     } else {
@@ -345,12 +321,45 @@ const SnakeGameScreen = () => {
     }
   };
 
-  // Update high score
   useEffect(() => {
-    if (gameOver && score > highScore) {
-      setHighScore(score);
+    AsyncStorage.getItem(HIGH_SCORE_KEY_SWIPE).then((value) => {
+      if (value) setHighScore(Number(value) || 0);
+    });
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextState) => {
+      if (nextState !== 'active' && gameStarted && !gameOver) {
+        setIsPaused(true);
+      }
+    });
+    return () => subscription.remove();
+  }, [gameStarted, gameOver]);
+
+  useEffect(() => {
+    if (gameOver) {
+      if (score > highScore) {
+        setHighScore(score);
+        AsyncStorage.setItem(HIGH_SCORE_KEY_SWIPE, String(score));
+      }
+      endSession(true);
     }
-  }, [gameOver, score, highScore]);
+  }, [gameOver, score, highScore, endSession]);
+
+  useEffect(() => {
+    if (!gameStarted || score === 0 || score % 50 !== 0) return;
+    if (score === lastMilestoneRef.current) return;
+    lastMilestoneRef.current = score;
+    endSession(true).then(() => {
+      sessionCompletedRef.current = false;
+      sessionActiveRef.current = true;
+      startSession();
+    });
+  }, [score, gameStarted, endSession, startSession]);
+
+  useEffect(() => () => {
+    if (gameLoopRef.current) clearInterval(gameLoopRef.current);
+  }, []);
 
   // No bouncing animation - just smooth movement
 
@@ -358,31 +367,24 @@ const SnakeGameScreen = () => {
   const renderGameBoard = () => {
     const board = [];
 
-    // Food - colorful shapes, bigger size
+    const targetSize = GRID_SIZE * 0.45;
+    const targetOffset = (GRID_SIZE - targetSize) / 2;
     board.push(
       <View
         key="food"
+        accessibilityLabel="Target"
         style={[
           styles.food,
           {
-            left: food.x * GRID_SIZE,
-            top: food.y * GRID_SIZE,
+            left: food.x * GRID_SIZE + targetOffset,
+            top: food.y * GRID_SIZE + targetOffset,
             backgroundColor: foodColor,
-            borderWidth: 3,
-            borderColor: '#FFFFFF',
-            shadowColor: foodColor,
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.5,
-            shadowRadius: 6,
-            elevation: 4,
-            width: GRID_SIZE + 8, // Bigger food
-            height: GRID_SIZE + 8,
-            borderRadius: (GRID_SIZE + 8) / 2,
+            width: targetSize,
+            height: targetSize,
+            borderRadius: targetSize / 2,
           },
         ]}
-      >
-        <Text style={styles.foodText}>{foodShape}</Text>
-      </View>
+      />
     );
 
     // helper: grid → px
@@ -553,7 +555,7 @@ const SnakeGameScreen = () => {
         <TouchableOpacity onPress={handleBackPress} style={ui.iconButton}>
           <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Snake Game</Text>
+        <Text style={styles.headerTitle}>Snake game</Text>
         <View style={ui.headerSpacer} />
       </View>
 
@@ -581,62 +583,18 @@ const SnakeGameScreen = () => {
       <View style={styles.gameContainer}>
         {!gameStarted ? (
           <View style={styles.startScreen}>
-            <Text style={styles.gameIcon}>🐍</Text>
-            <Text style={styles.gameTitle}>Snake</Text>
+            <GameIcon name="git-commit-outline" size={28} />
+            <Text style={styles.gameTitle}>Snake game</Text>
             <View style={styles.subtleInstructions}>
-              <Text style={styles.instructionText}>Swipe to guide • Eat to grow • Wrap around edges</Text>
+              <Text style={styles.instructionText}>Swipe to guide the snake at a steady pace.</Text>
             </View>
             <TouchableOpacity style={styles.startButton} onPress={startGame}>
               <Text style={styles.startButtonText}>Start</Text>
             </TouchableOpacity>
-            
-            {/* Level Selection */}
-            <View style={styles.controlsContainer}>
-              <Text style={styles.controlLabel}>Level:</Text>
-              <View style={styles.levelButtons}>
-                {['Beginner', 'Intermediate', 'Expert'].map((level) => (
-                  <TouchableOpacity
-                    key={level}
-                    style={[
-                      styles.levelButton,
-                      gameLevel === level && styles.levelButtonActive
-                    ]}
-                    onPress={() => setGameLevel(level)}
-                  >
-                    <Text style={[
-                      styles.levelButtonText,
-                      gameLevel === level && styles.levelButtonTextActive
-                    ]}>
-                      {level}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
-
-            {/* Wall Toggle */}
-            <View style={styles.controlsContainer}>
-              <Text style={styles.controlLabel}>Visual Walls:</Text>
-              <TouchableOpacity
-                style={[
-                  styles.wallToggle,
-                  wallsEnabled && styles.wallToggleActive
-                ]}
-                onPress={() => setWallsEnabled(!wallsEnabled)}
-              >
-                <Text style={[
-                  styles.wallToggleText,
-                  wallsEnabled && styles.wallToggleTextActive
-                ]}>
-                  {wallsEnabled ? 'ON' : 'OFF'}
-                </Text>
-              </TouchableOpacity>
-            </View>
           </View>
         ) : gameOver ? (
           <View style={styles.gameOverScreen}>
-            <Text style={styles.gameOverIcon}>💫</Text>
-            <Text style={styles.gameOverTitle}>Well Done!</Text>
+            <Text style={styles.gameOverTitle}>Pause point</Text>
             <Text style={styles.finalScore}>Level {level} • Score {score}</Text>
             {score === highScore && score > 0 && (
               <Text style={styles.newHighScore}>New Best!</Text>
@@ -690,8 +648,17 @@ const SnakeGameScreen = () => {
             )}
             
             {/* Pause Button */}
-            <TouchableOpacity style={styles.pauseButton} onPress={pauseGame}>
-              <Text style={styles.pauseButtonText}>{isPaused ? '▶️' : '⏸️'}</Text>
+            <TouchableOpacity
+              style={styles.pauseButton}
+              onPress={pauseGame}
+              accessibilityRole="button"
+              accessibilityLabel={isPaused ? 'Resume' : 'Pause'}
+            >
+              <Ionicons
+                name={isPaused ? 'play-outline' : 'pause-outline'}
+                size={22}
+                color={colors.slate600}
+              />
             </TouchableOpacity>
           </View>
         )}
@@ -703,7 +670,7 @@ const SnakeGameScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.slate100,
+    backgroundColor: gameColors.canvas,
   },
   backIcon: {
     fontSize: 24,
@@ -738,7 +705,7 @@ const styles = StyleSheet.create({
   },
   gameContainer: {
     flex: 1,
-    backgroundColor: colors.slate100,
+    backgroundColor: gameColors.canvas,
     padding: BOARD_PADDING,
   },
   startScreen: {
@@ -746,11 +713,8 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  gameIcon: {
-    fontSize: 60,
-    marginBottom: 16,
-  },
   gameTitle: {
+    marginTop: spacing.lg,
     fontSize: 28,
     fontWeight: "500",
     color: colors.slate600,

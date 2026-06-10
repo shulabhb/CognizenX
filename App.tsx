@@ -17,6 +17,12 @@ import SnakeTouch from "./screens/SnakeTouch";
 import PuzzlesGameScreen from "./screens/PuzzlesGameScreen";
 import MemoryMatchGame from "./screens/MemoryMatchGame";
 import PatternGame from "./screens/PatternGame";
+import OddOneOutGame from "./screens/OddOneOutGame";
+import WordUnscrambleGame from "./screens/WordUnscrambleGame";
+import SortCategoriesGame from "./screens/SortCategoriesGame";
+import TrailConnectGame from "./screens/TrailConnectGame";
+import SteadyFocusGame from "./screens/SteadyFocusGame";
+import OrderStepsGame from "./screens/OrderStepsGame";
 import AccountScreen from "./screens/AccountScreen";
 import PerformanceScreen from "./screens/PerformanceScreen";
 import { colors, spacing } from "./styles/theme";
@@ -27,7 +33,7 @@ const Stack = createStackNavigator();
 const LaunchScreen = () => (
   <SafeAreaView style={styles.launchScreen}>
     <View style={styles.launchCard}>
-      <Text style={styles.launchEyebrow}>CognizenX</Text>
+      <Text style={styles.launchEyebrow}>MindMitra</Text>
       <Text style={styles.launchTitle}>Checking sign-in</Text>
       <Text style={styles.launchSubtitle}>
         Please wait a moment.
@@ -133,6 +139,36 @@ const App = () => {
         <Stack.Screen
           name="PatternGame"
           component={PatternGame}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="OddOneOutGame"
+          component={OddOneOutGame}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="WordUnscrambleGame"
+          component={WordUnscrambleGame}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SortCategoriesGame"
+          component={SortCategoriesGame}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="TrailConnectGame"
+          component={TrailConnectGame}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="SteadyFocusGame"
+          component={SteadyFocusGame}
+          options={{ headerShown: false }}
+        />
+        <Stack.Screen
+          name="OrderStepsGame"
+          component={OrderStepsGame}
           options={{ headerShown: false }}
         />
         <Stack.Screen

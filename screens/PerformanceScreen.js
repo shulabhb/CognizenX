@@ -13,6 +13,7 @@ import axios from "axios";
 import { useFocusEffect } from "@react-navigation/native";
 
 import { API_BASE_URL } from "../config/backend";
+import { getGameById } from "../constants/gamesRegistry";
 import { colors, radii, spacing, type } from "../styles/theme";
 import { ui } from "../styles/ui";
 import { getStoredSessionToken } from "../utils/session";
@@ -72,11 +73,42 @@ function buildDailySeries(days, rawSeries) {
   return filled;
 }
 
+function buildGameDailySeries(days, rawSeries) {
+  const byDate = new Map((rawSeries || []).map((row) => [row.date, row]));
+  const now = new Date();
+  const start = addDaysUTC(now, -days + 1);
+  start.setUTCHours(0, 0, 0, 0);
+
+  const filled = [];
+  for (let i = 0; i < days; i += 1) {
+    const day = addDaysUTC(start, i);
+    const key = toDayStringUTC(day);
+    const existing = byDate.get(key);
+    filled.push(
+      existing || {
+        date: key,
+        totalSessions: 0,
+        completedSessions: 0,
+        totalDurationMs: 0,
+      }
+    );
+  }
+  return filled;
+}
+
 const PerformanceScreen = ({ navigation }) => {
   const [metricsDays, setMetricsDays] = useState(14);
   const [dailySeries, setDailySeries] = useState([]);
+  const [gameDailySeries, setGameDailySeries] = useState([]);
+  const [gameSummary, setGameSummary] = useState({
+    totalSessions: 0,
+    sessionsThisWeek: 0,
+    minutesThisWeek: 0,
+    favoriteGameId: null,
+  });
   const [loading, setLoading] = useState(true);
   const [chartWidth, setChartWidth] = useState(0);
+  const [gameChartWidth, setGameChartWidth] = useState(0);
   const [trendTooltip, setTrendTooltip] = useState(null);
 
   const load = useCallback(async () => {
@@ -85,18 +117,54 @@ const PerformanceScreen = ({ navigation }) => {
       const sessionToken = await getStoredSessionToken();
       if (!sessionToken) {
         setDailySeries(buildDailySeries(metricsDays, []));
+        setGameDailySeries(buildGameDailySeries(metricsDays, []));
+        setGameSummary({ totalSessions: 0, sessionsThisWeek: 0, minutesThisWeek: 0, favoriteGameId: null });
         return;
       }
 
-      const response = await axios.get(`${API_BASE_URL}/api/trivia/metrics/daily`, {
-        headers: { Authorization: `Bearer ${sessionToken}` },
-        params: { days: metricsDays },
-      });
+      const headers = { Authorization: `Bearer ${sessionToken}` };
+      const [quizResult, gameDailyResult, gameSummaryResult] = await Promise.allSettled([
+        axios.get(`${API_BASE_URL}/api/trivia/metrics/daily`, {
+          headers,
+          params: { days: metricsDays },
+        }),
+        axios.get(`${API_BASE_URL}/api/games/metrics/daily`, {
+          headers,
+          params: { days: metricsDays },
+        }),
+        axios.get(`${API_BASE_URL}/api/games/metrics/summary`, { headers }),
+      ]);
 
-      setDailySeries(buildDailySeries(metricsDays, response?.data?.series || []));
+      if (quizResult.status === "fulfilled") {
+        setDailySeries(buildDailySeries(metricsDays, quizResult.value?.data?.series || []));
+      } else {
+        console.error("Quiz metrics load error:", quizResult.reason);
+        setDailySeries(buildDailySeries(metricsDays, []));
+      }
+
+      if (gameDailyResult.status === "fulfilled") {
+        setGameDailySeries(buildGameDailySeries(metricsDays, gameDailyResult.value?.data?.series || []));
+      } else {
+        console.error("Game daily metrics load error:", gameDailyResult.reason);
+        setGameDailySeries(buildGameDailySeries(metricsDays, []));
+      }
+
+      if (gameSummaryResult.status === "fulfilled") {
+        setGameSummary({
+          totalSessions: gameSummaryResult.value?.data?.totalSessions || 0,
+          sessionsThisWeek: gameSummaryResult.value?.data?.sessionsThisWeek || 0,
+          minutesThisWeek: gameSummaryResult.value?.data?.minutesThisWeek || 0,
+          favoriteGameId: gameSummaryResult.value?.data?.favoriteGameId || null,
+        });
+      } else {
+        console.error("Game summary load error:", gameSummaryResult.reason);
+        setGameSummary({ totalSessions: 0, sessionsThisWeek: 0, minutesThisWeek: 0, favoriteGameId: null });
+      }
     } catch (error) {
       console.error("Performance load error:", error);
       setDailySeries(buildDailySeries(metricsDays, []));
+      setGameDailySeries(buildGameDailySeries(metricsDays, []));
+      setGameSummary({ totalSessions: 0, sessionsThisWeek: 0, minutesThisWeek: 0, favoriteGameId: null });
     } finally {
       setLoading(false);
     }
@@ -141,6 +209,28 @@ const PerformanceScreen = ({ navigation }) => {
       deltaAccuracyPct: recentAccuracyPct - previousAccuracyPct,
     };
   }, [dailySeries]);
+
+  const gameComputed = useMemo(() => {
+    const totalSessions = gameDailySeries.reduce((acc, item) => acc + (item.totalSessions || 0), 0);
+    const completedSessions = gameDailySeries.reduce((acc, item) => acc + (item.completedSessions || 0), 0);
+    const totalMinutes = Math.round(
+      gameDailySeries.reduce((acc, item) => acc + (item.totalDurationMs || 0), 0) / 60000
+    );
+    const favoriteGame = getGameById(gameSummary.favoriteGameId);
+    return {
+      totalSessions,
+      completedSessions,
+      totalMinutes,
+      favoriteGameTitle: favoriteGame?.title || "—",
+      sessionsThisWeek: gameSummary.sessionsThisWeek,
+      minutesThisWeek: gameSummary.minutesThisWeek,
+    };
+  }, [gameDailySeries, gameSummary]);
+
+  const gameChartMax = useMemo(
+    () => Math.max(...gameDailySeries.map((item) => item.totalSessions || 0), 0),
+    [gameDailySeries]
+  );
 
   const chartData = useMemo(() => {
     const maxAttempts = Math.max(...dailySeries.map((item) => item.totalAttempts || 0), 0);
@@ -220,7 +310,7 @@ const PerformanceScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={ui.iconButton}>
           <Text style={styles.backIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={ui.headerTitleLg}>Performance</Text>
+        <Text style={ui.headerTitleLg}>Progress</Text>
         <View style={ui.headerSpacer} />
       </View>
 
@@ -396,6 +486,78 @@ const PerformanceScreen = ({ navigation }) => {
             </View>
 
             <View style={ui.sectionCard}>
+              <Text style={styles.sectionTitle}>Games activity</Text>
+              <Text style={[ui.textCaption, { marginTop: spacing.xs }]}>
+                Brain games and calm play sessions tracked separately from quiz attempts.
+              </Text>
+
+              <View style={[styles.kpiGrid, { marginTop: spacing.lg }]}>
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>Game sessions</Text>
+                  <Text style={styles.kpiValue}>{gameComputed.totalSessions}</Text>
+                  <Text style={styles.kpiHint}>in selected range</Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>Minutes played</Text>
+                  <Text style={styles.kpiValue}>{gameComputed.totalMinutes}</Text>
+                  <Text style={styles.kpiHint}>estimated total</Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>This week</Text>
+                  <Text style={styles.kpiValue}>{gameComputed.minutesThisWeek}m</Text>
+                  <Text style={styles.kpiHint}>minutes played</Text>
+                </View>
+                <View style={styles.kpiCard}>
+                  <Text style={styles.kpiLabel}>Most played</Text>
+                  <Text style={[styles.kpiValue, styles.kpiValueCompact]}>{gameComputed.favoriteGameTitle}</Text>
+                  <Text style={styles.kpiHint}>favorite game</Text>
+                </View>
+              </View>
+
+              {gameComputed.totalSessions === 0 ? (
+                <View style={styles.emptyWrap}>
+                  <Text style={ui.textBodySm}>No game sessions yet in this range.</Text>
+                </View>
+              ) : (
+                <View style={styles.chartWrap}>
+                  <View
+                    style={styles.chartArea}
+                    onLayout={(event) => setGameChartWidth(event.nativeEvent.layout.width)}
+                  >
+                    {gameDailySeries.map((item) => {
+                      const total = item.totalSessions || 0;
+                      const scaledHeight = gameChartMax
+                        ? Math.max(2, Math.round((total / gameChartMax) * CHART_HEIGHT))
+                        : 2;
+                      return (
+                        <View key={`game-${item.date}`} style={styles.chartColumn}>
+                          <View style={[styles.bar, { height: scaledHeight, backgroundColor: colors.brandTint }]}>
+                            <View style={[styles.barCorrect, { height: scaledHeight, backgroundColor: colors.brand }]} />
+                          </View>
+                        </View>
+                      );
+                    })}
+                  </View>
+                  {gameChartWidth > 0 ? (
+                    <View style={styles.ticksRow}>
+                      {gameDailySeries.map((item, index) => {
+                        const showTick =
+                          index === 0 ||
+                          index === Math.floor(gameDailySeries.length / 2) ||
+                          index === gameDailySeries.length - 1;
+                        return (
+                          <View key={`game-tick-${item.date}`} style={styles.tickColumn}>
+                            <Text style={styles.tickLabel}>{showTick ? item.date.slice(5) : ""}</Text>
+                          </View>
+                        );
+                      })}
+                    </View>
+                  ) : null}
+                </View>
+              )}
+            </View>
+
+            <View style={ui.sectionCard}>
               <Text style={styles.sectionTitle}>Daily breakdown</Text>
               <View style={styles.dayList}>
                 {dailySeries
@@ -518,6 +680,10 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontWeight: "800",
     color: colors.textPrimary,
+  },
+  kpiValueCompact: {
+    fontSize: 18,
+    lineHeight: 24,
   },
   kpiHint: {
     marginTop: spacing.xs,

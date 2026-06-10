@@ -12,23 +12,28 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
 import Menu, { getMenuWidth } from './Menu';
+import GameIcon from '../components/games/GameIcon';
 
-import { colors, layout, radii, shadow, spacing, type } from '../styles/theme';
+import { colors, layout, radii, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
+import { gameColors } from '../styles/gameTheme';
 import { clearStoredSessionToken, getStoredSessionToken } from '../utils/session';
+import {
+  GAME_FILTER_OPTIONS,
+  getGamesByCategory,
+  getGamesGroupedByCategory,
+} from '../constants/gamesRegistry';
 
-// Menu icons
 const MENU_ICON = '≡';
 
 const GamesScreen = () => {
   const { width: screenWidth } = useWindowDimensions();
   const menuWidth = getMenuWidth(screenWidth);
-
   const navigation = useNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  
-  // Animation for the menu
+  const [activeFilter, setActiveFilter] = useState('all');
+
   const menuAnimation = useRef(new Animated.Value(-menuWidth)).current;
   const screenOpacity = useRef(new Animated.Value(1)).current;
 
@@ -41,184 +46,120 @@ const GamesScreen = () => {
   useFocusEffect(
     useCallback(() => {
       let isActive = true;
-
       const refreshAuthState = async () => {
         const sessionToken = await getStoredSessionToken();
-        if (isActive) {
-          setIsLoggedIn(!!sessionToken);
-        }
+        if (isActive) setIsLoggedIn(!!sessionToken);
       };
-
       refreshAuthState();
-
-      return () => {
-        isActive = false;
-      };
+      return () => { isActive = false; };
     }, [])
   );
 
-  // Toggle menu function
   const toggleMenu = () => {
-    if (menuOpen) {
-      // Close menu
-      Animated.parallel([
-        Animated.timing(menuAnimation, {
-          toValue: -menuWidth,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(screenOpacity, {
-          toValue: 1,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    } else {
-      // Open menu
-      Animated.parallel([
-        Animated.timing(menuAnimation, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-        Animated.timing(screenOpacity, {
-          toValue: 0.8,
-          duration: 300,
-          useNativeDriver: true,
-        }),
-      ]).start();
-    }
+    const toMenu = menuOpen ? -menuWidth : 0;
+    const toOpacity = menuOpen ? 1 : 0.8;
+    Animated.parallel([
+      Animated.timing(menuAnimation, { toValue: toMenu, duration: 300, useNativeDriver: true }),
+      Animated.timing(screenOpacity, { toValue: toOpacity, duration: 300, useNativeDriver: true }),
+    ]).start();
     setMenuOpen(!menuOpen);
   };
 
-  // Handle logout
   const handleLogout = async () => {
     try {
       await clearStoredSessionToken();
       setIsLoggedIn(false);
-      navigation.replace("Login");
+      navigation.replace('Login');
     } catch (error) {
       console.error('Logout Error:', error);
     }
   };
 
-  const games = [
-    {
-      id: 'snake',
-      title: 'Snake Game',
-      description: 'Classic snake with clear controls and a steady pace.',
-      icon: '🐍',
-      eyebrow: 'Classic',
-      accentBg: colors.successBg,
-      accentText: colors.successDark,
-      tag: 'Simple controls',
-    },
-    {
-      id: 'snakeTouch',
-      title: 'Touch Snake',
-      description: 'Guide the snake with touch and drag gestures.',
-      icon: '👆',
-      eyebrow: 'Interactive',
-      accentBg: colors.blue50,
-      accentText: colors.blue600,
-      tag: 'Touch play',
-    },
-    {
-      id: 'puzzles',
-      title: 'Puzzles',
-      description: 'Short puzzle play for memory and focus practice.',
-      icon: '🧩',
-      eyebrow: 'Focus',
-      accentBg: colors.brandTint,
-      accentText: colors.brandDark,
-      tag: 'Brain exercise',
-    },
-  ];
+  const groupedSections = activeFilter === 'all'
+    ? getGamesGroupedByCategory()
+    : [{ id: activeFilter, label: GAME_FILTER_OPTIONS.find((f) => f.id === activeFilter)?.label, games: getGamesByCategory(activeFilter) }];
 
-  const handleGamePress = (gameId) => {
-    if (gameId === 'snake') {
-      // Navigate to Snake game
-      navigation.navigate('SnakeGame');
-    } else if (gameId === 'snakeTouch') {
-      // Navigate to Touch-controlled Snake game
-      navigation.navigate('SnakeTouch');
-    } else if (gameId === 'puzzles') {
-      // Navigate to Puzzles game
-      navigation.navigate('PuzzlesGame');
-    }
-  };
+  const renderGameCard = (game) => (
+    <TouchableOpacity
+      key={game.id}
+      style={[ui.sectionCard, styles.gameCard]}
+      onPress={() => navigation.navigate(game.route)}
+      activeOpacity={0.9}
+      accessibilityRole="button"
+      accessibilityLabel={`${game.title}. ${game.description}`}
+    >
+      <View style={styles.gameRow}>
+        <GameIcon name={game.iconName} />
+        <View style={styles.gameInfo}>
+          <Text style={styles.gameEyebrow}>{game.tag}</Text>
+          <Text style={styles.gameTitle}>{game.title}</Text>
+          <Text style={styles.gameDescription}>{game.description}</Text>
+          <Text style={styles.gameMeta}>About {game.estimatedMinutes} min</Text>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
 
   return (
     <SafeAreaView style={ui.screenTint}>
-      <StatusBar backgroundColor={colors.backgroundTint} barStyle="dark-content" />
-      
-      {/* Main Content */}
+      <StatusBar backgroundColor={gameColors.canvas} barStyle="dark-content" />
       <Animated.View style={[ui.screenTint, { opacity: screenOpacity }]}>
-        {/* Header with Menu Icon */}
         <View style={[ui.headerRow, styles.header]}>
           <TouchableOpacity onPress={toggleMenu} style={ui.iconButton}>
             <Text style={styles.menuIconText}>{MENU_ICON}</Text>
           </TouchableOpacity>
-          <Text style={ui.headerTitleLg}>Games</Text>
+          <Text style={ui.headerTitleLg}>Activities</Text>
           <View style={ui.headerSpacer} />
         </View>
 
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <View style={[ui.sectionCard, styles.heroCard, styles.contentMaxWidth]}>
-            <Text style={styles.heroTitle}>Choose a game</Text>
+            <Text style={styles.heroTitle}>Brain activities</Text>
             <Text style={styles.heroSubtitle}>
-              Pick one simple activity and start when you are ready.
+              Calm, structured exercises designed for focus and recall.
             </Text>
           </View>
 
-          <View style={[styles.sectionHeader, styles.contentMaxWidth]}>
-            <Text style={styles.sectionTitle}>Available games</Text>
-          </View>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+            {GAME_FILTER_OPTIONS.map((filter) => {
+              const isActive = activeFilter === filter.id;
+              return (
+                <TouchableOpacity
+                  key={filter.id}
+                  style={[styles.filterChip, isActive && styles.filterChipActive]}
+                  onPress={() => setActiveFilter(filter.id)}
+                >
+                  <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]}>
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
 
-          <View style={styles.gamesContainer}>
-            {games.map((game) => (
-              <TouchableOpacity
-                key={game.id}
-                style={[ui.sectionCard, styles.gameCard]}
-                onPress={() => handleGamePress(game.id)}
-                activeOpacity={0.9}
-              >
-                <View style={styles.gameRow}>
-                  <View style={[styles.gameIconContainer, { backgroundColor: game.accentBg }]}>
-                    <Text style={styles.gameIcon}>{game.icon}</Text>
-                  </View>
+          {groupedSections.map((section) => (
+            <View key={section.id} style={styles.contentMaxWidth}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>{section.label}</Text>
+              </View>
+              <View style={styles.gamesContainer}>
+                {section.games.map(renderGameCard)}
+              </View>
+            </View>
+          ))}
 
-                  <View style={styles.gameInfo}>
-                    <Text style={[styles.gameEyebrow, { color: game.accentText }]}>{game.eyebrow}</Text>
-                    <Text style={styles.gameTitle}>{game.title}</Text>
-                    <Text style={styles.gameDescription}>{game.description}</Text>
-                  </View>
-                </View>
-
-                <View style={styles.gameFooter}>
-                  <View style={[styles.gameTag, { backgroundColor: game.accentBg }]}>
-                    <Text style={[styles.gameTagText, { color: game.accentText }]}>{game.tag}</Text>
-                  </View>
-
-                  <View style={styles.playButton}>
-                    <Text style={styles.playButtonText}>Open</Text>
-                  </View>
-                </View>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          <View style={[ui.sectionCard, styles.comingSoonContainer, styles.contentMaxWidth]}>
-            <Text style={styles.comingSoonTitle}>More games coming soon</Text>
-            <Text style={styles.comingSoonText}>
-              We are adding more quiet, easy-to-follow activities over time.
-            </Text>
-          </View>
+          {!isLoggedIn ? (
+            <View style={[ui.sectionCard, styles.noteCard, styles.contentMaxWidth]}>
+              <Text style={styles.noteTitle}>Sign in to save progress</Text>
+              <Text style={styles.noteText}>
+                Activities work without an account. Signing in lets you track sessions in Progress.
+              </Text>
+            </View>
+          ) : null}
         </ScrollView>
       </Animated.View>
 
-      {/* Drawer Menu */}
-      <Menu 
+      <Menu
         navigation={navigation}
         isOpen={menuOpen}
         closeMenu={toggleMenu}
@@ -231,138 +172,46 @@ const GamesScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: colors.backgroundTint,
+  header: { backgroundColor: gameColors.canvas },
+  menuIconText: { fontSize: 26, color: colors.textSecondary },
+  scrollContent: { paddingHorizontal: spacing.lg, paddingBottom: spacing.xxl },
+  contentMaxWidth: { width: '100%', maxWidth: layout.contentMaxWidth, alignSelf: 'center' },
+  heroCard: { marginTop: spacing.lg },
+  heroTitle: { fontSize: 28, fontWeight: '800', color: colors.textPrimary },
+  heroSubtitle: { marginTop: spacing.sm, fontSize: type.bodySm, color: colors.textMuted, lineHeight: 24 },
+  filterRow: { paddingVertical: spacing.md, gap: spacing.sm },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: radii.pill,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.borderSubtle,
+    marginRight: spacing.sm,
   },
-  menuIconText: {
-    fontSize: 26,
-    color: colors.textSecondary,
-  },
-  content: {
-    flex: 1,
-  },
-  scrollContent: {
-    paddingHorizontal: spacing.lg,
-    paddingBottom: spacing.xxl,
-  },
-  contentMaxWidth: {
-    width: '100%',
-    maxWidth: layout.contentMaxWidth,
-    alignSelf: 'center',
-  },
-  heroCard: {
-    marginTop: spacing.lg,
-  },
-  heroTitle: {
-    fontSize: 28,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    textAlign: 'left',
-  },
-  heroSubtitle: {
-    marginTop: spacing.sm,
-    fontSize: type.bodySm,
-    color: colors.textMuted,
-    textAlign: 'left',
-    lineHeight: 24,
-  },
-  sectionHeader: {
-    marginTop: spacing.lg,
-    marginBottom: spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: colors.textSecondary,
-  },
-  gamesContainer: {
-    marginBottom: spacing.lg,
-  },
-  gameCard: {
-    marginBottom: spacing.md,
-    padding: spacing.lg,
-  },
-  gameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  gameIconContainer: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: spacing.md,
-  },
-  gameIcon: {
-    fontSize: 30,
-  },
-  gameInfo: {
-    flex: 1,
-  },
+  filterChipActive: { backgroundColor: gameColors.accentSoft, borderColor: gameColors.borderFocus },
+  filterChipText: { fontSize: type.bodySm, color: colors.textSecondary, fontWeight: '600' },
+  filterChipTextActive: { color: gameColors.accentStrong },
+  sectionHeader: { marginTop: spacing.lg, marginBottom: spacing.md },
+  sectionTitle: { fontSize: 22, fontWeight: '700', color: colors.textSecondary },
+  gamesContainer: { marginBottom: spacing.sm },
+  gameCard: { marginBottom: spacing.md, padding: spacing.lg },
+  gameRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  gameInfo: { flex: 1, marginLeft: spacing.md },
   gameEyebrow: {
     fontSize: type.caption,
     fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.4,
+    color: gameColors.accentStrong,
     marginBottom: spacing.xs,
   },
-  gameTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: colors.textPrimary,
-    marginBottom: spacing.xs,
-  },
-  gameDescription: {
-    fontSize: type.bodySm,
-    color: colors.textMuted,
-    lineHeight: 20,
-  },
-  gameFooter: {
-    marginTop: spacing.md,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.md,
-  },
-  gameTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: radii.pill,
-  },
-  gameTagText: {
-    fontSize: type.caption,
-    fontWeight: '700',
-  },
-  playButton: {
-    minWidth: 88,
-    paddingHorizontal: 18,
-    paddingVertical: 10,
-    borderRadius: radii.pill,
-    backgroundColor: colors.brandTint,
-    borderWidth: 1,
-    borderColor: colors.brandBorder,
-    alignItems: 'center',
-  },
-  playButtonText: {
-    fontSize: type.bodySm,
-    color: colors.brandDark,
-    fontWeight: '700',
-  },
-  comingSoonContainer: {
-    marginBottom: spacing.md,
-  },
-  comingSoonTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: colors.textSecondary,
-    marginBottom: spacing.sm,
-  },
-  comingSoonText: {
-    fontSize: type.bodySm,
-    color: colors.textMuted,
-    lineHeight: 22,
-  },
+  gameTitle: { fontSize: 20, fontWeight: '800', color: colors.textPrimary, marginBottom: spacing.xs },
+  gameDescription: { fontSize: type.bodySm, color: colors.textMuted, lineHeight: 20 },
+  gameMeta: { marginTop: spacing.sm, fontSize: type.caption, color: colors.textMuted },
+  noteCard: { marginTop: spacing.lg },
+  noteTitle: { fontSize: 18, fontWeight: '700', color: colors.textSecondary, marginBottom: spacing.sm },
+  noteText: { fontSize: type.bodySm, color: colors.textMuted, lineHeight: 22 },
 });
 
 export default GamesScreen;

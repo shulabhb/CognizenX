@@ -231,7 +231,7 @@ const SignupScreen = ({ navigation }) => {
             { opacity: fadeAnim, transform: [{ translateY: slideAnim }] }
           ]}>
             <View style={styles.headerContainer}>
-              <Text style={styles.title}>CognizenX</Text>
+              <Text style={styles.title}>MindMitra</Text>
               <Text style={styles.subtitle}>Create Account</Text>
               <Text style={styles.description}>Create your account to get started.</Text>
             </View>
