@@ -24,6 +24,11 @@ import { API_BASE_URL } from "../config/backend";
 import { colors, radii, spacing, type } from "../styles/theme";
 import { ui } from "../styles/ui";
 import { getStoredSessionToken } from "../utils/session";
+import {
+  EDUCATION_LEVEL_OPTIONS,
+  formatUserEducation,
+  getEducationLevelLabel,
+} from "../constants/educationLevels";
 
 const TAB_INFO = "info";
 const TAB_SETTINGS = "settings";
@@ -77,6 +82,7 @@ const AccountScreen = ({ navigation }) => {
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
   const [genderModalVisible, setGenderModalVisible] = useState(false);
+  const [educationModalVisible, setEducationModalVisible] = useState(false);
   const [countryModalVisible, setCountryModalVisible] = useState(false);
   const [countrySearch, setCountrySearch] = useState("");
   const [dobPickerVisible, setDobPickerVisible] = useState(false);
@@ -87,7 +93,7 @@ const AccountScreen = ({ navigation }) => {
     dob: "",
     gender: "",
     countryOfOrigin: "",
-    yearsOfEducation: "",
+    highestEducationLevel: "",
   });
   const [isLoggedIn, setIsLoggedIn] = useState(true);
 
@@ -98,7 +104,7 @@ const AccountScreen = ({ navigation }) => {
       dob: u?.dob ? String(u.dob) : "",
       gender: u?.gender ? String(u.gender) : "",
       countryOfOrigin: u?.countryOfOrigin ? String(u.countryOfOrigin) : "",
-      yearsOfEducation: u?.yearsOfEducation != null ? String(u.yearsOfEducation) : "",
+      highestEducationLevel: u?.highestEducationLevel ? String(u.highestEducationLevel) : "",
     });
   }, []);
 
@@ -226,12 +232,9 @@ const AccountScreen = ({ navigation }) => {
           payload.countryOfOrigin = nextCountry.toUpperCase();
         }
 
-        const nextEdu = trimOrEmpty(profileDraft.yearsOfEducation);
-        if (nextEdu) {
-          const eduNum = Number(nextEdu);
-          if (!Number.isNaN(eduNum) && eduNum !== profile?.yearsOfEducation) {
-            payload.yearsOfEducation = eduNum;
-          }
+        const nextEducation = trimOrEmpty(profileDraft.highestEducationLevel);
+        if (nextEducation && nextEducation !== (profile?.highestEducationLevel || "")) {
+          payload.highestEducationLevel = nextEducation;
         }
 
         if (!genderLocked) {
@@ -397,20 +400,27 @@ const AccountScreen = ({ navigation }) => {
         </View>
 
         <View style={styles.profileRow}>
-          <Text style={styles.profileLabel}>Years of education</Text>
+          <Text style={styles.profileLabel}>Highest education</Text>
           {isEditingProfile ? (
             <View style={ui.inputWrapper}>
-              <TextInput
-                style={ui.input}
-                value={profileDraft.yearsOfEducation}
-                onChangeText={(t) => setProfileDraft((p) => ({ ...p, yearsOfEducation: t }))}
-                placeholder="e.g. 14"
-                placeholderTextColor={colors.gray400}
-                keyboardType="numeric"
-              />
+              <TouchableOpacity
+                style={styles.selectButton}
+                onPress={() => setEducationModalVisible(true)}
+                accessibilityRole="button"
+                accessibilityLabel="Select highest education level"
+              >
+                <Text
+                  style={profileDraft.highestEducationLevel ? styles.selectText : styles.selectPlaceholder}
+                  numberOfLines={2}
+                >
+                  {profileDraft.highestEducationLevel
+                    ? getEducationLevelLabel(profileDraft.highestEducationLevel)
+                    : "Select education level..."}
+                </Text>
+              </TouchableOpacity>
             </View>
           ) : (
-            <Text style={styles.profileValue}>{profile?.yearsOfEducation ?? "—"}</Text>
+            <Text style={styles.profileValue}>{formatUserEducation(profile)}</Text>
           )}
         </View>
 
@@ -427,6 +437,26 @@ const AccountScreen = ({ navigation }) => {
             )}
           </TouchableOpacity>
         ) : null}
+
+        <Modal visible={educationModalVisible} transparent animationType="fade" onRequestClose={() => setEducationModalVisible(false)}>
+          <Pressable style={ui.modalOverlay} onPress={() => setEducationModalVisible(false)}>
+            <Pressable style={ui.modalContent} onPress={() => {}}>
+              <Text style={styles.modalTitle}>Select highest education</Text>
+              {EDUCATION_LEVEL_OPTIONS.map((opt) => (
+                <TouchableOpacity
+                  key={opt.value}
+                  style={styles.modalOption}
+                  onPress={() => {
+                    setProfileDraft((p) => ({ ...p, highestEducationLevel: opt.value }));
+                    setEducationModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.modalOptionText}>{opt.label}</Text>
+                </TouchableOpacity>
+              ))}
+            </Pressable>
+          </Pressable>
+        </Modal>
 
         <Modal visible={genderModalVisible} transparent animationType="fade" onRequestClose={() => setGenderModalVisible(false)}>
           <Pressable style={ui.modalOverlay} onPress={() => setGenderModalVisible(false)}>
@@ -499,15 +529,22 @@ const AccountScreen = ({ navigation }) => {
             <Pressable style={ui.modalOverlay} onPress={() => setDobPickerVisible(false)}>
               <Pressable style={[ui.modalContent, styles.dobModalContent]} onPress={() => {}}>
                 <Text style={styles.modalTitle}>Select date of birth</Text>
-                <DateTimePicker
-                  value={dobPickerDate}
-                  mode="date"
-                  display="inline"
-                  maximumDate={new Date()}
-                  onChange={(event, selectedDate) => {
-                    if (selectedDate) setDobPickerDate(selectedDate);
-                  }}
-                />
+                <Text style={styles.dobPreviewText}>{formatDateOnlyLocal(dobPickerDate)}</Text>
+                <View style={styles.dobPickerShell}>
+                  <DateTimePicker
+                    value={dobPickerDate}
+                    mode="date"
+                    display="spinner"
+                    themeVariant="light"
+                    textColor={colors.textPrimary}
+                    accentColor={colors.brandDark}
+                    maximumDate={new Date()}
+                    style={styles.dobPicker}
+                    onChange={(event, selectedDate) => {
+                      if (selectedDate) setDobPickerDate(selectedDate);
+                    }}
+                  />
+                </View>
                 <TouchableOpacity
                   style={[ui.buttonPrimary, { width: "100%", marginTop: spacing.md }]}
                   onPress={() => {
@@ -755,6 +792,26 @@ const styles = StyleSheet.create({
   },
   dobModalContent: {
     alignItems: "stretch",
+  },
+  dobPreviewText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.brandSelectedText,
+    textAlign: "center",
+    marginBottom: spacing.sm,
+  },
+  dobPickerShell: {
+    backgroundColor: colors.slate100,
+    borderRadius: radii.lg,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    overflow: "hidden",
+    marginBottom: spacing.md,
+  },
+  dobPicker: {
+    height: 216,
+    width: "100%",
+    backgroundColor: colors.slate100,
   },
   modalSearchWrap: {
     marginTop: spacing.sm,

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, StatusBar, ScrollView } from 'react-native';
 import axios from 'axios';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -38,6 +38,11 @@ function dedupeQuestions(questions = []) {
     return true;
   });
 }
+
+// Question length stats from prod bank (n≈7859): min 25, avg 72, p95 113, max 200 chars.
+const OPTION_SLOTS = 4;
+const OPTION_ROW_HEIGHT = 56;
+const OPTION_BADGE_SIZE = 32;
 
 const QuizScreen = ({ route, navigation }) => {
   console.log(route.params)
@@ -244,6 +249,12 @@ const QuizScreen = ({ route, navigation }) => {
         ? `${categories.length} categories`
         : (categories[0] || "Quiz");
 
+  const currentQuestion = questions[currentQuestionIndex];
+  const optionSlots = Array.from(
+    { length: OPTION_SLOTS },
+    (_, index) => currentQuestion?.options?.[index] ?? null
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.loader}>
@@ -284,22 +295,38 @@ const QuizScreen = ({ route, navigation }) => {
       {questions.length > 0 ? (
         <View style={styles.contentWrap}>
           <View style={[ui.card, styles.questionCard]}>
-            <Text style={styles.questionText}>
-              {questions[currentQuestionIndex].question}
-            </Text>
-            {questions[currentQuestionIndex].options.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.answerButton}
-                onPress={() => handleSelectAnswer(option)}
-                activeOpacity={0.85}
+            <View style={styles.questionSlot}>
+              <ScrollView
+                style={styles.questionScroll}
+                contentContainerStyle={styles.questionScrollContent}
+                showsVerticalScrollIndicator={false}
+                bounces={false}
               >
-                <View style={styles.optionBadge}>
-                  <Text style={styles.optionBadgeText}>{String.fromCharCode(65 + index)}</Text>
-                </View>
-                <Text style={styles.answerText}>{option}</Text>
-              </TouchableOpacity>
-            ))}
+                <Text style={styles.questionText}>{currentQuestion.question}</Text>
+              </ScrollView>
+            </View>
+
+            <View style={styles.optionsDock}>
+              {optionSlots.map((option, index) =>
+                option ? (
+                  <TouchableOpacity
+                    key={`${currentQuestionIndex}-${index}-${option}`}
+                    style={styles.answerButton}
+                    onPress={() => handleSelectAnswer(option)}
+                    activeOpacity={0.85}
+                  >
+                    <View style={styles.optionBadge}>
+                      <Text style={styles.optionBadgeText}>{String.fromCharCode(65 + index)}</Text>
+                    </View>
+                    <Text style={styles.answerText} numberOfLines={2} ellipsizeMode="tail">
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ) : (
+                  <View key={`placeholder-${index}`} style={styles.answerButtonPlaceholder} />
+                )
+              )}
+            </View>
           </View>
         </View>
       ) : (
@@ -396,11 +423,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
     paddingBottom: spacing.lg,
     backgroundColor: colors.backgroundTint,
-    justifyContent: 'center',
   },
   contentWrap: {
+    flex: 1,
     width: '100%',
     maxWidth: layout.contentMaxWidth,
     alignSelf: 'center',
@@ -418,49 +446,71 @@ const styles = StyleSheet.create({
     color: colors.textMuted,
   },
   questionCard: {
+    flex: 1,
     borderRadius: 24,
-    padding: 24,
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 16,
     ...shadow({ color: colors.brand, offsetHeight: 6, opacity: 0.12, radius: 16, elevation: 4 }),
   },
+  questionSlot: {
+    flex: 1,
+    minHeight: 72,
+    marginBottom: spacing.md,
+  },
+  questionScroll: {
+    flex: 1,
+  },
+  questionScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+    paddingBottom: spacing.xs,
+  },
   questionText: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: '800',
-    lineHeight: 36,
-    marginBottom: 22,
+    lineHeight: 28,
     color: colors.textPrimary,
     textAlign: 'left',
   },
+  optionsDock: {
+    gap: 8,
+    paddingTop: spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: colors.borderSubtle,
+  },
   answerButton: {
-    minHeight: 76,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderRadius: 18,
+    height: OPTION_ROW_HEIGHT,
+    paddingHorizontal: 12,
+    borderRadius: 14,
     backgroundColor: colors.white,
-    marginVertical: 8,
     borderWidth: 1,
     borderColor: colors.brandBorder,
     flexDirection: 'row',
     alignItems: 'center',
-    ...shadow({ color: colors.brandShadow, offsetHeight: 4, opacity: 0.08, radius: 8, elevation: 2 }),
+    ...shadow({ color: colors.brandShadow, offsetHeight: 2, opacity: 0.06, radius: 6, elevation: 1 }),
+  },
+  answerButtonPlaceholder: {
+    height: OPTION_ROW_HEIGHT,
   },
   optionBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: OPTION_BADGE_SIZE,
+    height: OPTION_BADGE_SIZE,
+    borderRadius: OPTION_BADGE_SIZE / 2,
     backgroundColor: colors.brandTint,
     alignItems: 'center',
     justifyContent: 'center',
-    marginRight: spacing.md,
+    marginRight: spacing.sm,
   },
   optionBadgeText: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: '800',
     color: colors.brandDark,
   },
   answerText: {
     flex: 1,
-    fontSize: 19,
-    lineHeight: 28,
+    fontSize: 15,
+    lineHeight: 20,
     color: colors.textSecondary,
   },
   emptyState: {

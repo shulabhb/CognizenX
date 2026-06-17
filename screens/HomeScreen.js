@@ -588,7 +588,7 @@ const HomeScreen = ({ navigation }) => {
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
           <View style={[ui.sectionCard, styles.heroCard, styles.contentMaxWidth]}>
             <Text style={styles.heroTitle}>
-              {userName ? `Welcome back, ${userName}` : "Welcome back"}
+              {userName ? `Hi, ${userName}!` : "Hi!"}
             </Text>
           </View>
 

@@ -16,6 +16,7 @@ import {
   SafeAreaView,
   Animated,
   Dimensions,
+  Pressable,
   ScrollView,
 } from "react-native";
 import axios from "axios";
@@ -28,6 +29,7 @@ import { ui } from '../styles/ui';
 import { API_BASE_URL } from "../config/backend";
 import { signup as signupRequest } from "../services/api";
 import { getStoredSessionToken, saveSessionToken } from "../utils/session";
+import { EDUCATION_LEVEL_OPTIONS, getEducationLevelLabel } from "../constants/educationLevels";
 
 const { width } = Dimensions.get("window");
 
@@ -65,6 +67,50 @@ function parseDateOnlyString(value) {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
+function validateSignupForm({ name, email, password, dob, gender, countryOfOrigin, highestEducationLevel }) {
+  if (!name?.trim()) return "Name is required.";
+  if (!/^[a-zA-Z\s'-]+$/.test(name.trim())) {
+    return "Name can only contain letters, spaces, hyphens, and apostrophes.";
+  }
+  if (!email?.trim()) return "Email is required.";
+  if (!password || password.length < 6) return "Password must be at least 6 characters.";
+  if (!dob?.trim() || !/^\d{4}-\d{2}-\d{2}$/.test(dob.trim())) {
+    return "Please select your date of birth.";
+  }
+  if (!gender) return "Please select your gender.";
+  if (!countryOfOrigin) return "Please select your country of origin.";
+  if (!highestEducationLevel) return "Please select your highest education level.";
+  return null;
+}
+
+function formatSignupError(error) {
+  const data = error?.response?.data;
+  if (!data) return error?.message || "Something went wrong.";
+  if (Array.isArray(data.details) && data.details.length > 0) {
+    const labels = {
+      dob: "Date of birth",
+      age: "Age",
+      gender: "Gender",
+      countryOfOrigin: "Country of origin",
+      highestEducationLevel: "Highest education level",
+      yearsOfEducation: "Years of education",
+      name: "Name",
+      email: "Email",
+      password: "Password",
+    };
+    return data.details
+      .map((detail) => {
+        const label = labels[detail.field] || detail.field || "Field";
+        const message = String(detail.message || "Invalid value")
+          .replace(/^"[^"]*"\s+/, "")
+          .replace(/^value\s+/i, "");
+        return `• ${label}: ${message}`;
+      })
+      .join("\n");
+  }
+  return data.message || "Something went wrong.";
+}
+
 const SignupScreen = ({ navigation }) => {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -76,7 +122,8 @@ const SignupScreen = ({ navigation }) => {
   const [countrySearch, setCountrySearch] = useState("");
   const [dobPickerVisible, setDobPickerVisible] = useState(false);
   const [dobPickerDate, setDobPickerDate] = useState(new Date());
-  const [yearsOfEducation, setYearsOfEducation] = useState("");
+  const [educationModalVisible, setEducationModalVisible] = useState(false);
+  const [highestEducationLevel, setHighestEducationLevel] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -85,7 +132,6 @@ const SignupScreen = ({ navigation }) => {
   const dobRef = useRef(null);
   const genderRef = useRef(null);
   const countryOfOriginRef = useRef(null);
-  const yearsOfEducationRef = useRef(null);
   const passwordRef = useRef(null);
 
   // Animation values
@@ -95,6 +141,8 @@ const SignupScreen = ({ navigation }) => {
 
   const selectedGenderLabel =
     GENDER_OPTIONS.find((g) => g.value === gender)?.label || "";
+
+  const selectedEducationLabel = getEducationLevelLabel(highestEducationLevel);
 
   const selectedCountryCode = countryOfOrigin ? String(countryOfOrigin).toUpperCase() : "";
   const selectedCountryLabel = selectedCountryCode
@@ -142,8 +190,17 @@ const SignupScreen = ({ navigation }) => {
   };
 
   const handleSignup = async () => {
-    if (!name || !email || !password) {
-      Alert.alert("Error", "All fields are required.");
+    const validationError = validateSignupForm({
+      name,
+      email,
+      password,
+      dob,
+      gender,
+      countryOfOrigin,
+      highestEducationLevel,
+    });
+    if (validationError) {
+      Alert.alert("Missing information", validationError);
       return;
     }
 
@@ -151,16 +208,13 @@ const SignupScreen = ({ navigation }) => {
 
     try {
       const response = await signupRequest({
-        name,
-        email,
+        name: name.trim(),
+        email: email.trim().toLowerCase(),
         password,
-        // Expect YYYY-MM-DD (ISO date-only). Backend accepts ISO date.
-        dob: dob ? String(dob).trim() : undefined,
-        gender: gender || undefined,
-        countryOfOrigin: countryOfOrigin
-          ? String(countryOfOrigin).toUpperCase()
-          : undefined,
-        yearsOfEducation: yearsOfEducation ? Number(yearsOfEducation) : undefined,
+        dob: String(dob).trim(),
+        gender,
+        countryOfOrigin: String(countryOfOrigin).toUpperCase(),
+        highestEducationLevel,
       });
 
       const { sessionToken } = response.data;
@@ -208,10 +262,7 @@ const SignupScreen = ({ navigation }) => {
       console.log("Navigating to Home screen...");
       navigation.replace("Home");
     } catch (error) {
-      Alert.alert(
-        "Signup Failed",
-        error.response?.data?.message || "Something went wrong."
-      );
+      Alert.alert("Signup Failed", formatSignupError(error));
     } finally {
       setLoading(false);
     }
@@ -320,16 +371,21 @@ const SignupScreen = ({ navigation }) => {
               </View>
 
               <View style={styles.inputContainer}>
-                <Text style={styles.label}>Years of Education</Text>
+                <Text style={styles.label}>Highest Education Level</Text>
                 <View style={styles.inputWrapper}>
-                  <TextInput
-                    style={styles.input}
-                    placeholder="Enter years of education"
-                    placeholderTextColor={colors.gray400}
-                    value={yearsOfEducation}
-                    onChangeText={setYearsOfEducation}
-                    keyboardType="numeric"
-                  />
+                  <TouchableOpacity
+                    onPress={() => setEducationModalVisible(true)}
+                    style={styles.selectButton}
+                    accessibilityRole="button"
+                    accessibilityLabel="Select highest education level"
+                  >
+                    <Text
+                      style={highestEducationLevel ? styles.selectText : styles.selectPlaceholder}
+                      numberOfLines={2}
+                    >
+                      {highestEducationLevel ? selectedEducationLabel : "Select education level..."}
+                    </Text>
+                  </TouchableOpacity>
                 </View>
               </View>
 
@@ -423,39 +479,96 @@ const SignupScreen = ({ navigation }) => {
         animationType="slide"
         onRequestClose={() => setGenderModalVisible(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setGenderModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalBackdrop} />
-            <TouchableWithoutFeedback>
-              <View style={styles.modalCard}>
-                <Text style={styles.modalTitle}>Select Gender</Text>
-                {GENDER_OPTIONS.map((opt, idx) => (
-                  <View key={opt.value || "__empty"}>
-                    <TouchableOpacity
-                      style={styles.modalOption}
-                      onPress={() => {
-                        setGender(opt.value);
-                        setGenderModalVisible(false);
-                      }}
-                    >
-                      <Text style={styles.modalOptionText}>{opt.label}</Text>
-                    </TouchableOpacity>
-                    {idx < GENDER_OPTIONS.length - 1 ? (
-                      <View style={styles.modalDivider} />
-                    ) : null}
-                  </View>
-                ))}
-                <View style={styles.modalSpacer} />
+        <Pressable style={styles.modalOverlay} onPress={() => setGenderModalVisible(false)}>
+          <Pressable style={styles.modalCard} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Select Gender</Text>
+            {GENDER_OPTIONS.filter((opt) => opt.value).map((opt, idx, arr) => (
+              <View key={opt.value}>
                 <TouchableOpacity
-                  style={styles.modalCancel}
-                  onPress={() => setGenderModalVisible(false)}
+                  style={[
+                    styles.modalOption,
+                    gender === opt.value ? styles.modalOptionSelected : null,
+                  ]}
+                  onPress={() => {
+                    setGender(opt.value);
+                    setGenderModalVisible(false);
+                  }}
                 >
-                  <Text style={styles.modalCancelText}>Cancel</Text>
+                  <Text
+                    style={[
+                      styles.modalOptionText,
+                      gender === opt.value ? styles.modalOptionTextSelected : null,
+                    ]}
+                  >
+                    {opt.label}
+                  </Text>
                 </TouchableOpacity>
+                {idx < arr.length - 1 ? <View style={styles.modalDivider} /> : null}
               </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
+            ))}
+            <View style={styles.modalSpacer} />
+            <TouchableOpacity
+              style={styles.modalSecondaryButton}
+              onPress={() => setGenderModalVisible(false)}
+            >
+              <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Education Level Modal */}
+      <Modal
+        visible={educationModalVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setEducationModalVisible(false)}
+      >
+        <Pressable style={styles.modalOverlay} onPress={() => setEducationModalVisible(false)}>
+          <Pressable style={[styles.modalCard, styles.modalCardTall]} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Select Highest Education Level</Text>
+            <View style={styles.modalList}>
+              <FlatList
+                data={EDUCATION_LEVEL_OPTIONS}
+                keyExtractor={(item) => item.value}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item, index }) => {
+                  const isSelected = highestEducationLevel === item.value;
+                  return (
+                    <View>
+                      <TouchableOpacity
+                        style={[styles.modalOption, isSelected ? styles.modalOptionSelected : null]}
+                        onPress={() => {
+                          setHighestEducationLevel(item.value);
+                          setEducationModalVisible(false);
+                        }}
+                      >
+                        <Text
+                          style={[
+                            styles.modalOptionText,
+                            isSelected ? styles.modalOptionTextSelected : null,
+                          ]}
+                        >
+                          {item.label}
+                        </Text>
+                      </TouchableOpacity>
+                      {index < EDUCATION_LEVEL_OPTIONS.length - 1 ? (
+                        <View style={styles.modalDivider} />
+                      ) : null}
+                    </View>
+                  );
+                }}
+              />
+            </View>
+            <View style={styles.modalSpacer} />
+            <TouchableOpacity
+              style={styles.modalSecondaryButton}
+              onPress={() => setEducationModalVisible(false)}
+            >
+              <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* Country Modal */}
@@ -465,57 +578,63 @@ const SignupScreen = ({ navigation }) => {
         animationType="slide"
         onRequestClose={() => setCountryModalVisible(false)}
       >
-        <TouchableWithoutFeedback onPress={() => setCountryModalVisible(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalBackdrop} />
-            <TouchableWithoutFeedback>
-              <View style={styles.modalCard}>
-                <Text style={styles.modalTitle}>Select Country</Text>
-                <View style={styles.modalSearchWrapper}>
-                  <TextInput
-                    style={styles.modalSearchInput}
-                    placeholder="Search country"
-                    placeholderTextColor={colors.gray400}
-                    value={countrySearch}
-                    onChangeText={setCountrySearch}
-                    autoCorrect={false}
-                    autoCapitalize="none"
-                  />
-                </View>
+        <Pressable style={styles.modalOverlay} onPress={() => setCountryModalVisible(false)}>
+          <Pressable style={[styles.modalCard, styles.modalCardTall]} onPress={() => {}}>
+            <Text style={styles.modalTitle}>Select Country of Origin</Text>
+            <View style={styles.modalSearchWrapper}>
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Search country"
+                placeholderTextColor={colors.gray400}
+                value={countrySearch}
+                onChangeText={setCountrySearch}
+                autoCorrect={false}
+                autoCapitalize="none"
+                keyboardAppearance="light"
+              />
+            </View>
 
-                <View style={styles.modalList}>
-                  <FlatList
-                    data={filteredCountries}
-                    keyExtractor={(item) => item.code}
-                    keyboardShouldPersistTaps="handled"
-                    renderItem={({ item }) => (
-                      <TouchableOpacity
-                        style={styles.modalOption}
-                        onPress={() => {
-                          setCountryOfOrigin(item.code);
-                          setCountryModalVisible(false);
-                        }}
+            <View style={styles.modalList}>
+              <FlatList
+                data={filteredCountries}
+                keyExtractor={(item) => item.code}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                renderItem={({ item }) => {
+                  const isSelected = countryOfOrigin === item.code;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.modalOption, isSelected ? styles.modalOptionSelected : null]}
+                      onPress={() => {
+                        setCountryOfOrigin(item.code);
+                        setCountryModalVisible(false);
+                      }}
+                    >
+                      <Text
+                        style={[
+                          styles.modalOptionText,
+                          isSelected ? styles.modalOptionTextSelected : null,
+                        ]}
+                        numberOfLines={1}
                       >
-                        <Text style={styles.modalOptionText} numberOfLines={1}>
-                          {item.name} ({item.code})
-                        </Text>
-                      </TouchableOpacity>
-                    )}
-                    ItemSeparatorComponent={() => <View style={styles.modalDivider} />}
-                  />
-                </View>
+                        {item.name} ({item.code})
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }}
+                ItemSeparatorComponent={() => <View style={styles.modalDivider} />}
+              />
+            </View>
 
-                <View style={styles.modalSpacer} />
-                <TouchableOpacity
-                  style={styles.modalCancel}
-                  onPress={() => setCountryModalVisible(false)}
-                >
-                  <Text style={styles.modalCancelText}>Cancel</Text>
-                </TouchableOpacity>
-              </View>
-            </TouchableWithoutFeedback>
-          </View>
-        </TouchableWithoutFeedback>
+            <View style={styles.modalSpacer} />
+            <TouchableOpacity
+              style={styles.modalSecondaryButton}
+              onPress={() => setCountryModalVisible(false)}
+            >
+              <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+            </TouchableOpacity>
+          </Pressable>
+        </Pressable>
       </Modal>
 
       {/* DOB Picker */}
@@ -523,45 +642,47 @@ const SignupScreen = ({ navigation }) => {
         <Modal
           visible={dobPickerVisible}
           transparent
-          animationType="slide"
+          animationType="fade"
           onRequestClose={() => setDobPickerVisible(false)}
         >
-          <TouchableWithoutFeedback onPress={() => setDobPickerVisible(false)}>
-            <View style={styles.modalOverlay}>
-              <View style={styles.modalBackdrop} />
-              <TouchableWithoutFeedback>
-                <View style={styles.modalCard}>
-                  <Text style={styles.modalTitle}>Select Date of Birth</Text>
-                  <DateTimePicker
-                    value={dobPickerDate}
-                    mode="date"
-                    display="inline"
-                    maximumDate={new Date()}
-                    onChange={(event, selectedDate) => {
-                      if (selectedDate) setDobPickerDate(selectedDate);
-                    }}
-                  />
-                  <View style={styles.modalSpacer} />
-                  <TouchableOpacity
-                    style={styles.modalCancel}
-                    onPress={() => {
-                      setDob(formatDateOnlyLocal(dobPickerDate));
-                      setDobPickerVisible(false);
-                    }}
-                  >
-                    <Text style={styles.modalCancelText}>Done</Text>
-                  </TouchableOpacity>
-                  <View style={styles.modalSpacer} />
-                  <TouchableOpacity
-                    style={styles.modalCancel}
-                    onPress={() => setDobPickerVisible(false)}
-                  >
-                    <Text style={styles.modalCancelText}>Cancel</Text>
-                  </TouchableOpacity>
+          <Pressable style={styles.dobModalOverlay} onPress={() => setDobPickerVisible(false)}>
+            <Pressable style={styles.dobModalCard} onPress={() => {}}>
+              <Text style={styles.modalTitle}>Select Date of Birth</Text>
+              <Text style={styles.dobPreviewText}>{formatDateOnlyLocal(dobPickerDate)}</Text>
+              <View style={styles.dobPickerShell}>
+                <DateTimePicker
+                  value={dobPickerDate}
+                  mode="date"
+                  display="spinner"
+                  themeVariant="light"
+                  textColor={colors.textPrimary}
+                  accentColor={colors.brandDark}
+                  maximumDate={new Date()}
+                  style={styles.dobPicker}
+                  onChange={(event, selectedDate) => {
+                    if (selectedDate) setDobPickerDate(selectedDate);
+                  }}
+                />
+              </View>
+              <TouchableOpacity
+                style={styles.modalPrimaryButton}
+                onPress={() => {
+                  setDob(formatDateOnlyLocal(dobPickerDate));
+                  setDobPickerVisible(false);
+                }}
+              >
+                <View style={ui.brandFill}>
+                  <Text style={styles.modalPrimaryButtonText}>Done</Text>
                 </View>
-              </TouchableWithoutFeedback>
-            </View>
-          </TouchableWithoutFeedback>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalSecondaryButton, styles.modalSecondaryButtonSpaced]}
+                onPress={() => setDobPickerVisible(false)}
+              >
+                <Text style={styles.modalSecondaryButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
         </Modal>
       ) : null}
 
@@ -693,40 +814,53 @@ const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
     justifyContent: "flex-end",
-  },
-  modalBackdrop: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.textSecondary,
-    opacity: 0.35,
+    backgroundColor: "rgba(15, 23, 42, 0.45)",
   },
   modalCard: {
-    backgroundColor: colors.white,
-    borderTopLeftRadius: 18,
-    borderTopRightRadius: 18,
-    padding: 16,
+    backgroundColor: colors.surface,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingHorizontal: 18,
+    paddingTop: 18,
+    paddingBottom: 24,
+    borderTopWidth: 1,
+    borderColor: colors.slate200,
+  },
+  modalCardTall: {
+    maxHeight: "82%",
   },
   modalTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: colors.textSecondary,
+    fontSize: 18,
+    fontWeight: "800",
+    color: colors.textPrimary,
     marginBottom: 12,
   },
   modalOption: {
     paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+  },
+  modalOptionSelected: {
+    backgroundColor: colors.brandTint,
   },
   modalOptionText: {
-    fontSize: 16,
-    color: colors.textSecondary,
+    fontSize: 17,
+    color: colors.textPrimary,
+    fontWeight: "500",
+  },
+  modalOptionTextSelected: {
+    color: colors.brandSelectedText,
+    fontWeight: "700",
   },
   modalDivider: {
     height: 1,
-    backgroundColor: colors.gray200,
+    backgroundColor: colors.slate200,
   },
   modalSearchWrapper: {
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.gray200,
-    backgroundColor: colors.gray50,
+    borderColor: colors.slate200,
+    backgroundColor: colors.slate50,
     overflow: "hidden",
     marginBottom: 12,
   },
@@ -734,27 +868,84 @@ const styles = StyleSheet.create({
     height: 48,
     paddingHorizontal: 14,
     fontSize: 17,
-    color: colors.textSecondary,
+    color: colors.textPrimary,
+    backgroundColor: colors.slate50,
   },
   modalList: {
     maxHeight: 360,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    backgroundColor: colors.slate50,
+    overflow: "hidden",
   },
   modalSpacer: {
     height: 12,
   },
-  modalCancel: {
+  dobModalOverlay: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(15, 23, 42, 0.5)",
+    paddingHorizontal: 24,
+  },
+  dobModalCard: {
+    width: "100%",
+    maxWidth: 360,
+    backgroundColor: colors.surface,
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    ...shadow({ color: colors.black, offsetHeight: 4, opacity: 0.18, radius: 12, elevation: 8 }),
+  },
+  dobPreviewText: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: colors.brandSelectedText,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  dobPickerShell: {
+    backgroundColor: colors.slate100,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.slate200,
+    overflow: "hidden",
+    marginBottom: 16,
+  },
+  dobPicker: {
+    height: 216,
+    width: "100%",
+    backgroundColor: colors.slate100,
+  },
+  modalPrimaryButton: {
+    height: 52,
+    borderRadius: 14,
+    overflow: "hidden",
+  },
+  modalPrimaryButtonText: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: colors.white,
+    textAlign: "center",
+  },
+  modalSecondaryButton: {
     height: 48,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: colors.gray200,
-    backgroundColor: colors.gray50,
+    borderColor: colors.slate200,
+    backgroundColor: colors.slate50,
     alignItems: "center",
     justifyContent: "center",
   },
-  modalCancelText: {
+  modalSecondaryButtonSpaced: {
+    marginTop: 10,
+  },
+  modalSecondaryButtonText: {
     fontSize: 16,
     fontWeight: "600",
-    color: colors.textSecondary,
+    color: colors.textPrimary,
   },
   signupButton: {
     height: 62,

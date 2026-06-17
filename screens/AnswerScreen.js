@@ -8,6 +8,7 @@ import { colors, isTablet, layout, radii, spacing, type } from '../styles/theme'
 import { ui } from '../styles/ui';
 import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 import { getStoredSessionToken } from "../utils/session";
+import Ionicons from 'react-native-vector-icons/Ionicons';
 
 function safePct(numerator, denominator) {
   if (!denominator) return 0;
@@ -36,6 +37,22 @@ function formatTimeDelta(deltaMs) {
   const seconds = Math.abs(deltaMs) / 1000;
   const sign = deltaMs > 0 ? "+" : deltaMs < 0 ? "-" : "±";
   return `${sign}${seconds.toFixed(1)}s`;
+}
+
+// Question length stats from prod bank (n≈7859): min 25, avg 72, p95 113, max 200 chars.
+const REVIEW_QUESTION_MIN_HEIGHT = isTablet ? 80 : 72;
+const REVIEW_QUESTION_MAX_HEIGHT = isTablet ? 168 : 148;
+const REVIEW_ANSWER_ROW_HEIGHT = isTablet ? 68 : 58;
+const REVIEW_EXPLANATION_SLOT_HEIGHT = isTablet ? 156 : 128;
+
+function ExplanationSkeleton() {
+  return (
+    <View style={styles.skeletonWrap}>
+      <View style={[styles.skeletonLine, styles.skeletonLineLong]} />
+      <View style={[styles.skeletonLine, styles.skeletonLineMedium]} />
+      <View style={[styles.skeletonLine, styles.skeletonLineShort]} />
+    </View>
+  );
 }
 
 const AnswerScreen = ({ route, navigation }) => {
@@ -377,85 +394,124 @@ const AnswerScreen = ({ route, navigation }) => {
         </View>
       </View>
       
-      <View style={styles.container}>
+      <View style={styles.body}>
         {questions[currentIndex] ? (
           <>
-            <View style={[ui.card, styles.reviewCard]}>
-              <View style={styles.reviewTopRow}>
-                <Text style={styles.questionCounter}>Reviewing your answer</Text>
-                <TouchableOpacity
-                  style={styles.reportButton}
-                  onPress={handleOpenReport}
-                  accessibilityRole="button"
-                  accessibilityLabel="Report a possibly incorrect answer suggestion"
-                >
-                  <Text style={styles.reportButtonText}>i</Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.questionTitle}>Question</Text>
-              <Text style={styles.questionText}>{questions[currentIndex].question}</Text>
-              
-              <View style={styles.answerSection}>
-                <View style={[styles.reviewBlock, styles.correctAnswerContainer]}>
-                  <Text style={styles.answerLabel}>Correct answer</Text>
-                  <Text style={styles.correctAnswerText}>
-                    {resolvedCorrectAnswer}
-                  </Text>
-                </View>
-                
-                <View style={[styles.reviewBlock, styles.userAnswerContainer, isCorrect ? styles.correctBg : styles.incorrectBg]}>
-                  <Text style={styles.answerLabel}>Your answer</Text>
-                  <Text style={[styles.userAnswerText, isCorrect ? styles.correctText : styles.incorrectText]}>
-                    {selectedAnswers[currentIndex]?.answer || "No answer provided"}
-                  </Text>
+            <ScrollView
+              style={styles.scrollArea}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              <View style={[ui.card, styles.reviewCard]}>
+                <View style={styles.reviewTopRow}>
+                  <View style={styles.reviewStatusWrap}>
+                    <Ionicons
+                      name={isCorrect ? 'checkmark-circle' : 'close-circle'}
+                      size={20}
+                      color={isCorrect ? colors.success : colors.danger}
+                    />
+                    <Text style={styles.questionCounter}>
+                      {isCorrect ? 'Correct' : 'Incorrect'}
+                    </Text>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.reportButton}
+                    onPress={handleOpenReport}
+                    accessibilityRole="button"
+                    accessibilityLabel="Report a possibly incorrect answer suggestion"
+                  >
+                    <Text style={styles.reportButtonText}>i</Text>
+                  </TouchableOpacity>
                 </View>
 
-                {loading ? (
-                  <View style={[styles.reviewBlock, styles.loaderContainer]}>
-                    <ActivityIndicator size="small" color={colors.brand} />
-                    <Text style={styles.loaderText}>Loading explanation...</Text>
+                <View style={styles.questionSlot}>
+                  <ScrollView
+                    style={styles.questionScroll}
+                    contentContainerStyle={styles.questionScrollContent}
+                    showsVerticalScrollIndicator
+                    nestedScrollEnabled
+                  >
+                    <Text style={styles.questionText}>
+                      {questions[currentIndex].question}
+                    </Text>
+                  </ScrollView>
+                </View>
+
+                <View style={styles.answersSlot}>
+                  <View style={[styles.reviewBlock, styles.correctAnswerContainer, styles.answerRowFixed]}>
+                    <Text style={styles.answerLabel}>Correct answer</Text>
+                    <Text style={styles.correctAnswerText} numberOfLines={2}>
+                      {resolvedCorrectAnswer}
+                    </Text>
                   </View>
-                ) : (
-                  <View style={[styles.reviewBlock, styles.descriptionContainer]}>
-                    <Text style={styles.descriptionLabel}>Explanation</Text>
-                    <ScrollView
-                      style={styles.descriptionScroll}
-                      contentContainerStyle={styles.descriptionScrollContent}
-                      showsVerticalScrollIndicator
-                      nestedScrollEnabled
+
+                  <View
+                    style={[
+                      styles.reviewBlock,
+                      styles.userAnswerContainer,
+                      styles.answerRowFixed,
+                      isCorrect ? styles.correctBg : styles.incorrectBg,
+                    ]}
+                  >
+                    <Text style={styles.answerLabel}>Your answer</Text>
+                    <Text
+                      style={[styles.userAnswerText, isCorrect ? styles.correctText : styles.incorrectText]}
+                      numberOfLines={2}
                     >
-                      <Text style={styles.descriptionText}>{description}</Text>
-                    </ScrollView>
+                      {selectedAnswers[currentIndex]?.answer || "No answer provided"}
+                    </Text>
                   </View>
-                )}
+                </View>
+
+                <View style={[styles.reviewBlock, styles.descriptionContainer, styles.explanationSlot]}>
+                  <Text style={styles.descriptionLabel}>Explanation</Text>
+                  <View style={styles.explanationBody}>
+                    {loading ? (
+                      <ExplanationSkeleton />
+                    ) : (
+                      <Text style={styles.descriptionText}>{description}</Text>
+                    )}
+                  </View>
+                </View>
               </View>
-            </View>
+            </ScrollView>
 
             <View style={styles.actionRow}>
               <TouchableOpacity
                 style={[
-                  styles.secondaryButton,
-                  styles.previousButton,
-                  currentIndex === 0 && styles.secondaryButtonDisabled,
+                  styles.navButton,
+                  currentIndex === 0 && styles.navButtonDisabled,
                 ]}
                 onPress={handlePrevious}
                 disabled={currentIndex === 0}
                 accessibilityRole="button"
-                accessibilityLabel="Go to previous answer review"
+                accessibilityLabel="Previous question"
               >
-                <Text
-                  style={[
-                    styles.secondaryButtonText,
-                    currentIndex === 0 && styles.secondaryButtonTextDisabled,
-                  ]}
-                >
-                  Previous
-                </Text>
+                <Ionicons
+                  name="chevron-back"
+                  size={22}
+                  color={currentIndex === 0 ? colors.slate400 : colors.textSecondary}
+                />
               </TouchableOpacity>
-              <TouchableOpacity style={[ui.buttonPrimary, styles.nextButton]} onPress={handleNext}>
-                <Text style={ui.buttonPrimaryText}>
-                  {currentIndex < questions.length - 1 ? 'Next Question' : 'View summary'}
-                </Text>
+
+              <Text style={styles.actionProgress}>
+                {currentIndex + 1} / {questions.length}
+              </Text>
+
+              <TouchableOpacity
+                style={[styles.navButton, styles.navButtonPrimary]}
+                onPress={handleNext}
+                accessibilityRole="button"
+                accessibilityLabel={
+                  currentIndex < questions.length - 1 ? 'Next question' : 'View session summary'
+                }
+              >
+                <Ionicons
+                  name={currentIndex < questions.length - 1 ? 'chevron-forward' : 'stats-chart-outline'}
+                  size={currentIndex < questions.length - 1 ? 22 : 20}
+                  color={colors.white}
+                />
               </TouchableOpacity>
             </View>
           </>
@@ -612,16 +668,22 @@ const AnswerScreen = ({ route, navigation }) => {
 
             <View style={styles.analyticsActions}>
               <TouchableOpacity
-                style={[styles.secondaryButton, styles.analyticsSecondaryAction]}
+                style={styles.compactActionButton}
                 onPress={handleBackHome}
+                accessibilityRole="button"
+                accessibilityLabel="Back home"
               >
-                <Text style={styles.secondaryButtonText}>Back home</Text>
+                <Ionicons name="home-outline" size={18} color={colors.textSecondary} />
+                <Text style={styles.compactActionText}>Home</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[ui.buttonPrimary, styles.analyticsPrimaryAction]}
+                style={[styles.compactActionButton, styles.compactActionButtonPrimary]}
                 onPress={handleViewAllAnalytics}
+                accessibilityRole="button"
+                accessibilityLabel="View all analytics"
               >
-                <Text style={ui.buttonPrimaryText}>View all analytics</Text>
+                <Ionicons name="stats-chart-outline" size={18} color={colors.white} />
+                <Text style={styles.compactActionTextPrimary}>Analytics</Text>
               </TouchableOpacity>
             </View>
           </Pressable>
@@ -688,28 +750,47 @@ const styles = StyleSheet.create({
     backgroundColor: colors.brand,
     borderRadius: 999,
   },
+  body: {
+    flex: 1,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: colors.backgroundTint,
+  },
+  scrollArea: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: spacing.sm,
+    width: '100%',
+    maxWidth: layout.contentMaxWidth,
+    alignSelf: 'center',
+  },
   container: {
     flex: 1,
     padding: spacing.lg,
     backgroundColor: colors.backgroundTint,
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   reviewCard: {
     borderRadius: 24,
     padding: spacing.xl,
+    width: '100%',
   },
   reviewTopRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     gap: spacing.md,
+    marginBottom: spacing.sm,
+  },
+  reviewStatusWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
   },
   questionCounter: {
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
     color: colors.brandDark,
-    marginBottom: 10,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
@@ -727,33 +808,42 @@ const styles = StyleSheet.create({
     fontWeight: '800',
     marginTop: -1,
   },
-  questionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: colors.textSecondary,
-    marginBottom: 8,
+  questionSlot: {
+    minHeight: REVIEW_QUESTION_MIN_HEIGHT,
+    maxHeight: REVIEW_QUESTION_MAX_HEIGHT,
+    marginBottom: spacing.md,
+  },
+  questionScroll: {
+    flexGrow: 0,
+  },
+  questionScrollContent: {
+    paddingBottom: 2,
   },
   questionText: {
-    fontSize: 24,
+    fontSize: isTablet ? 24 : 22,
     fontWeight: '800',
-    lineHeight: 34,
-    marginBottom: 20,
+    lineHeight: isTablet ? 32 : 28,
     color: colors.textPrimary,
     textAlign: 'left',
   },
-  answerSection: {
-    width: '100%',
+  answersSlot: {
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  answerRowFixed: {
+    height: REVIEW_ANSWER_ROW_HEIGHT,
+    marginBottom: 0,
+    justifyContent: 'center',
   },
   reviewBlock: {
-    marginBottom: 14,
     padding: 16,
     borderRadius: radii.md,
     borderWidth: 1,
   },
   answerLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
-    marginBottom: 8,
+    marginBottom: 4,
     color: colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
@@ -774,14 +864,14 @@ const styles = StyleSheet.create({
     borderColor: colors.dangerBorder,
   },
   correctAnswerText: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 22,
     color: colors.success,
     fontWeight: '700',
   },
   userAnswerText: {
-    fontSize: 18,
-    lineHeight: 28,
+    fontSize: 16,
+    lineHeight: 22,
     fontWeight: '700',
   },
   correctText: {
@@ -790,50 +880,83 @@ const styles = StyleSheet.create({
   incorrectText: {
     color: colors.danger,
   },
-  loaderContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    minHeight: 120,
-    backgroundColor: colors.slate50,
-    borderColor: colors.slate200,
-  },
-  loaderText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: colors.textMuted,
-  },
   descriptionContainer: {
     backgroundColor: colors.slate50,
     borderColor: colors.slate200,
-    flexShrink: 1,
+  },
+  explanationSlot: {
+    minHeight: REVIEW_EXPLANATION_SLOT_HEIGHT,
+  },
+  explanationBody: {
+    minHeight: REVIEW_EXPLANATION_SLOT_HEIGHT - 36,
+    justifyContent: 'flex-start',
   },
   descriptionLabel: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '700',
     marginBottom: 8,
     color: colors.textMuted,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
-  descriptionScroll: {
-    minHeight: isTablet ? 150 : 110,
-    maxHeight: isTablet ? 250 : 180,
-  },
-  descriptionScrollContent: {
-    paddingBottom: 2,
-  },
   descriptionText: {
-    fontSize: 17,
-    lineHeight: isTablet ? 28 : 26,
+    fontSize: 16,
+    lineHeight: isTablet ? 26 : 24,
     color: colors.textSecondary,
+  },
+  skeletonWrap: {
+    gap: 10,
+    paddingTop: 2,
+  },
+  skeletonLine: {
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: colors.slate200,
+  },
+  skeletonLineLong: {
+    width: '100%',
+  },
+  skeletonLineMedium: {
+    width: '82%',
+  },
+  skeletonLineShort: {
+    width: '58%',
   },
   actionRow: {
     width: '100%',
     maxWidth: layout.contentMaxWidth,
     alignSelf: 'center',
     flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: 20,
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: spacing.sm,
+    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.sm,
+    backgroundColor: colors.backgroundTint,
+  },
+  navButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.slate300,
+  },
+  navButtonPrimary: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brandDark,
+  },
+  navButtonDisabled: {
+    backgroundColor: colors.slate100,
+    borderColor: colors.slate200,
+  },
+  actionProgress: {
+    fontSize: type.bodySm,
+    fontWeight: '700',
+    color: colors.textMuted,
+    letterSpacing: 0.3,
   },
   secondaryButton: {
     minHeight: 60,
@@ -843,11 +966,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 1,
-  },
-  previousButton: {
-    flex: 0.9,
-    backgroundColor: colors.white,
-    borderColor: colors.slate300,
   },
   secondaryButtonText: {
     fontSize: type.button,
@@ -861,9 +979,33 @@ const styles = StyleSheet.create({
   secondaryButtonTextDisabled: {
     color: colors.slate400,
   },
-  nextButton: {
-    marginTop: 0,
-    flex: 1.2,
+  compactActionButton: {
+    flex: 1,
+    minHeight: 40,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: radii.pill,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.slate300,
+  },
+  compactActionButtonPrimary: {
+    backgroundColor: colors.brand,
+    borderColor: colors.brandDark,
+  },
+  compactActionText: {
+    fontSize: type.bodySm,
+    fontWeight: '700',
+    color: colors.textSecondary,
+  },
+  compactActionTextPrimary: {
+    fontSize: type.bodySm,
+    fontWeight: '700',
+    color: colors.white,
   },
   primaryButtonDisabled: {
     opacity: 0.7,
@@ -1046,16 +1188,8 @@ const styles = StyleSheet.create({
   },
   analyticsActions: {
     flexDirection: 'row',
-    gap: spacing.md,
-    marginTop: spacing.xl,
-  },
-  analyticsSecondaryAction: {
-    flex: 1,
-    backgroundColor: colors.white,
-    borderColor: colors.slate300,
-  },
-  analyticsPrimaryAction: {
-    flex: 1.2,
+    gap: spacing.sm,
+    marginTop: spacing.lg,
   },
   noQuestionsText: {
     fontSize: 16,
