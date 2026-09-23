@@ -42,6 +42,27 @@ target 'BasicApp' do
       config[:reactNativePath],
       :mac_catalyst_enabled => false
     )
+
+    # Xcode 16.3+ / 26 / 27: Apple Clang breaks fmt 11.0.2 consteval.
+    # GCC_PREPROCESSOR_DEFINITIONS alone is NOT enough — base.h later does
+    # `#define FMT_USE_CONSTEVAL 1` and overwrites the flag. Patch the header.
+    fmt_base = File.join(__dir__, 'Pods', 'fmt', 'include', 'fmt', 'base.h')
+    if File.exist?(fmt_base)
+      contents = File.read(fmt_base)
+      patched = contents.gsub(
+        /#elif defined\(__apple_build_version__\) && __apple_build_version__ < 14000029L\n#  define FMT_USE_CONSTEVAL 0  \/\/ consteval is broken in Apple clang < 14\./,
+        "#elif defined(__apple_build_version__)\n#  define FMT_USE_CONSTEVAL 0  // patched: consteval broken on modern Apple Clang / Xcode 27"
+      )
+      if patched != contents
+        File.chmod(0644, fmt_base)
+        File.write(fmt_base, patched)
+        Pod::UI.puts 'Patched fmt/base.h to disable FMT_USE_CONSTEVAL on Apple Clang'.green
+      elsif contents.include?('patched: consteval broken on modern Apple Clang')
+        Pod::UI.puts 'fmt/base.h already patched for Apple Clang consteval'.yellow
+      else
+        Pod::UI.warn 'Could not patch fmt/base.h — consteval fix pattern not found'
+      end
+    end
     
     # React Native 0.76.9 requires C++20 for iOS 18.4 SDK compatibility
     installer.pods_project.targets.each do |target|
@@ -55,18 +76,6 @@ target 'BasicApp' do
         
         # Relax strict modularity checks to prevent build failures
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
-
-        # Xcode 16.3+ / 26 / 27 Apple Clang breaks fmt 11.0.2 consteval
-        # (format-inl.h: "Call to consteval function ... is not a constant expression").
-        # RN pins fmt 11.0.2 via RCT-Folly; disable consteval until fmt/RN bump.
-        if target.name == 'fmt'
-          definitions = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
-          definitions = [definitions] unless definitions.is_a?(Array)
-          unless definitions.any? { |d| d.to_s.include?('FMT_USE_CONSTEVAL') }
-            definitions << 'FMT_USE_CONSTEVAL=0'
-          end
-          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = definitions
-        end
       end
     end
   end
