@@ -22,6 +22,8 @@ import Menu, { getMenuWidth } from './Menu'; // Import the Menu component
 import { colors, radii, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
 import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { clearStoredSessionToken } from "../utils/session";
+import { posthog } from "../config/posthog";
 
 const { width, height } = Dimensions.get('window');
 
@@ -286,8 +288,7 @@ const CategoriesScreen = () => {
 
         // Only clear tokens on confirmed auth failure.
         if (error.response?.status === 401) {
-          await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
-          await AsyncStorage.removeItem('sessionToken');
+          await clearStoredSessionToken();
           setIsLoggedIn(false);
 
           const errorMessage =
@@ -361,6 +362,9 @@ const CategoriesScreen = () => {
       return;
     }
     await logActivity(category, subDomain);
+    posthog?.capture('quiz_started', {
+      launch_source: 'category_selection',
+    });
     navigation.navigate('Quiz', { categories: [category], subDomain });
   };
 
@@ -404,8 +408,7 @@ const CategoriesScreen = () => {
   // Handle logout
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
-      await AsyncStorage.removeItem('sessionToken');
+      await clearStoredSessionToken();
       Alert.alert('Logout Successful', 'You have been logged out.');
       navigation.replace('Login');
     } catch (error) {
@@ -632,6 +635,9 @@ const CategoriesScreen = () => {
       
       // Show animated notification
       showNotification(successMsg);
+      posthog?.capture('category_preferences_saved', {
+        selection_count: categoriesForMessage.length,
+      });
       
     } catch (error) {
       console.error('Error adding categories:', error);
@@ -641,8 +647,7 @@ const CategoriesScreen = () => {
       // Check if it's an authentication error
       if (error.response?.status === 401) {
         // Clear invalid token
-        await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
-        await AsyncStorage.removeItem('sessionToken');
+        await clearStoredSessionToken();
         Alert.alert(
           'Authentication Required',
           'Your session has expired. Please log in again to add categories.',

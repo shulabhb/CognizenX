@@ -24,6 +24,7 @@ import { API_BASE_URL } from "../config/backend";
 import { colors, radii, spacing, type } from "../styles/theme";
 import { ui } from "../styles/ui";
 import { getStoredSessionToken } from "../utils/session";
+import { posthog } from "../config/posthog";
 import {
   EDUCATION_LEVEL_OPTIONS,
   formatUserEducation,
@@ -257,6 +258,9 @@ const AccountScreen = ({ navigation }) => {
         setProfile(updated);
         hydrateDraftFromProfile(updated);
         setIsEditingProfile(false);
+        posthog?.capture("profile_updated", {
+          updated_field_count: Object.keys(payload).length,
+        });
         Alert.alert("Saved", "Your profile has been updated.");
       } catch (err) {
         const msg = err?.response?.data?.message || "Could not update your profile. Please try again.";

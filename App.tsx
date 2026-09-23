@@ -3,6 +3,7 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { PostHogProvider } from "posthog-react-native";
 import SignupScreen from "./screens/SignupScreen";
 import LoginScreen from "./screens/LoginScreen";
 import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
@@ -27,8 +28,21 @@ import AccountScreen from "./screens/AccountScreen";
 import PerformanceScreen from "./screens/PerformanceScreen";
 import { colors, spacing } from "./styles/theme";
 import { getStoredSessionToken } from "./utils/session";
+import { posthog } from "./config/posthog";
 
 const Stack = createStackNavigator();
+
+const PostHogNavigation = ({ children }: { children: React.ReactNode }) =>
+  posthog ? (
+    <PostHogProvider
+      client={posthog}
+      autocapture={{ captureScreens: false, captureTouches: true, propsToCapture: ["testID"] }}
+    >
+      {children}
+    </PostHogProvider>
+  ) : (
+    <>{children}</>
+  );
 
 const LaunchScreen = () => (
   <SafeAreaView style={styles.launchScreen}>
@@ -75,7 +89,8 @@ const App = () => {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName={initialRouteName}>
+      <PostHogNavigation>
+        <Stack.Navigator initialRouteName={initialRouteName}>
         <Stack.Screen
           name="Home"
           component={HomeScreen}
@@ -191,7 +206,8 @@ const App = () => {
           component={QuizScreen}
           options={{ headerShown: false }}
         />
-      </Stack.Navigator>
+        </Stack.Navigator>
+      </PostHogNavigation>
     </NavigationContainer>
   );
 };

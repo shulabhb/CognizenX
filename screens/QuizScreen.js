@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, layout, radii, shadow, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
 import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { posthog } from "../config/posthog";
 
 function normaliseAnswer(answer) {
   return String(answer || "").trim().toLowerCase();
@@ -214,6 +215,10 @@ const QuizScreen = ({ route, navigation }) => {
         ? (selectionCategories.length > 1 ? `${selectionCategories.length} categories` : selectionCategories[0])
         : (categories[0] || categories.join(','));
 
+      posthog?.capture('quiz_completed', {
+        question_count: updatedAnswers.length,
+        correct_answer_count: updatedAnswers.filter((answer) => answer.isCorrect).length,
+      });
       navigation.navigate('AnswerScreen', {
         selectedAnswers: updatedAnswers,
         questions,
@@ -229,7 +234,17 @@ const QuizScreen = ({ route, navigation }) => {
       "You can leave now and come back to a new quiz later.",
       [
         { text: "Stay", style: "cancel" },
-        { text: "Exit quiz", style: "destructive", onPress: () => navigation.navigate("Home") },
+        {
+          text: "Exit quiz",
+          style: "destructive",
+          onPress: () => {
+            posthog?.capture('quiz_exited', {
+              answered_question_count: selectedAnswers.length,
+              total_question_count: questions.length,
+            });
+            navigation.navigate("Home");
+          },
+        },
       ]
     );
   };

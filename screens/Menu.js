@@ -17,6 +17,7 @@ import { colors, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
 import { API_BASE_URL } from "../config/backend";
 import { clearStoredSessionToken, getStoredSessionToken } from "../utils/session";
+import { posthog } from "../config/posthog";
 
 const clamp = (value, min, max) => Math.min(Math.max(value, min), max);
 
@@ -65,6 +66,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
                   headers: { Authorization: `Bearer ${sessionToken}` },
                 });
                 
+                posthog?.capture('account_deleted');
                 await clearStoredSessionToken();
                 
                 Alert.alert(

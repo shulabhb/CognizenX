@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
 import { SESSION_TOKEN_KEY } from "../config/backend";
+import { posthog } from "../config/posthog";
 
 const LEGACY_SESSION_TOKEN_KEY = "sessionToken";
 
@@ -29,6 +30,7 @@ export async function saveSessionToken(token) {
 }
 
 export async function clearStoredSessionToken() {
+  posthog?.reset();
   await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
   await AsyncStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
 }

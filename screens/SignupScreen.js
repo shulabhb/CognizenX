@@ -29,6 +29,7 @@ import { ui } from '../styles/ui';
 import { API_BASE_URL } from "../config/backend";
 import { signup as signupRequest } from "../services/api";
 import { getStoredSessionToken, saveSessionToken } from "../utils/session";
+import { posthog } from "../config/posthog";
 import { EDUCATION_LEVEL_OPTIONS, getEducationLevelLabel } from "../constants/educationLevels";
 
 const { width } = Dimensions.get("window");
@@ -251,7 +252,17 @@ const SignupScreen = ({ navigation }) => {
           },
           timeout: 3000, // 3 second timeout
         });
-        console.log("Token verified successfully! User ID:", verifyResponse.data.userId);
+        const userId = verifyResponse?.data?.userId;
+        if (userId) {
+          posthog?.identify(String(userId), {
+            $set: {
+              email: email.trim().toLowerCase(),
+              name: name.trim(),
+            },
+          });
+          posthog?.capture("signup_completed");
+        }
+        console.log("Token verified successfully! User ID:", userId);
       } catch (verifyError) {
         // If verification fails, it might just be timing - token should work on next request
         // Don't block the user - let them proceed and HomeScreen will handle it
