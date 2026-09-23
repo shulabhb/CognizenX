@@ -55,6 +55,18 @@ target 'BasicApp' do
         
         # Relax strict modularity checks to prevent build failures
         config.build_settings['CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES'] = 'YES'
+
+        # Xcode 16.3+ / 26 / 27 Apple Clang breaks fmt 11.0.2 consteval
+        # (format-inl.h: "Call to consteval function ... is not a constant expression").
+        # RN pins fmt 11.0.2 via RCT-Folly; disable consteval until fmt/RN bump.
+        if target.name == 'fmt'
+          definitions = config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] || ['$(inherited)']
+          definitions = [definitions] unless definitions.is_a?(Array)
+          unless definitions.any? { |d| d.to_s.include?('FMT_USE_CONSTEVAL') }
+            definitions << 'FMT_USE_CONSTEVAL=0'
+          end
+          config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] = definitions
+        end
       end
     end
   end
