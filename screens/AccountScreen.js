@@ -12,6 +12,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Switch,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
@@ -24,7 +25,11 @@ import { API_BASE_URL } from "../config/backend";
 import { colors, radii, spacing, type } from "../styles/theme";
 import { ui } from "../styles/ui";
 import { getStoredSessionToken } from "../utils/session";
-import { posthog } from "../config/posthog";
+import {
+  applyAnalyticsConsent,
+  captureEvent,
+  identifyAnalyticsUser,
+} from "../utils/analytics";
 import {
   EDUCATION_LEVEL_OPTIONS,
   formatUserEducation,
@@ -82,6 +87,7 @@ const AccountScreen = ({ navigation }) => {
   const [profile, setProfile] = useState(null);
   const [isEditingProfile, setIsEditingProfile] = useState(false);
   const [savingProfile, setSavingProfile] = useState(false);
+  const [savingConsent, setSavingConsent] = useState(false);
   const [genderModalVisible, setGenderModalVisible] = useState(false);
   const [educationModalVisible, setEducationModalVisible] = useState(false);
   const [countryModalVisible, setCountryModalVisible] = useState(false);
@@ -128,6 +134,9 @@ const AccountScreen = ({ navigation }) => {
       setProfile(u);
       hydrateDraftFromProfile(u);
       setIsEditingProfile(false);
+      if (u) {
+        await identifyAnalyticsUser(u);
+      }
     } catch (err) {
       console.error("Account load error:", err);
       Alert.alert("Error", "Could not load account information. Please try again.");
@@ -258,7 +267,7 @@ const AccountScreen = ({ navigation }) => {
         setProfile(updated);
         hydrateDraftFromProfile(updated);
         setIsEditingProfile(false);
-        posthog?.capture("profile_updated", {
+        captureEvent("profile_updated", {
           updated_field_count: Object.keys(payload).length,
         });
         Alert.alert("Saved", "Your profile has been updated.");
@@ -587,6 +596,51 @@ const AccountScreen = ({ navigation }) => {
     );
   };
 
+  const handleAnalyticsConsentChange = async (nextValue) => {
+    if (!isLoggedIn || savingConsent) return;
+    setSavingConsent(true);
+    const previous = Boolean(profile?.analyticsConsent);
+    setProfile((p) => (p ? { ...p, analyticsConsent: nextValue } : p));
+    try {
+      const sessionToken = await getStoredSessionToken();
+      const headers = { Authorization: `Bearer ${sessionToken}` };
+      const resp = await axios.patch(
+        `${API_BASE_URL}/api/users/me`,
+        { analyticsConsent: Boolean(nextValue) },
+        { headers }
+      );
+      const updated = resp?.data?.user || null;
+      if (updated) {
+        setProfile(updated);
+        if (nextValue) {
+          await identifyAnalyticsUser(updated);
+          captureEvent("analytics_consent_updated", {
+            analytics_consent: true,
+          });
+        } else {
+          captureEvent("analytics_consent_updated", {
+            analytics_consent: false,
+          });
+          await identifyAnalyticsUser(updated);
+        }
+      } else if (nextValue) {
+        await applyAnalyticsConsent(true);
+        captureEvent("analytics_consent_updated", { analytics_consent: true });
+      } else {
+        captureEvent("analytics_consent_updated", { analytics_consent: false });
+        await applyAnalyticsConsent(false);
+      }
+    } catch (err) {
+      setProfile((p) => (p ? { ...p, analyticsConsent: previous } : p));
+      const msg =
+        err?.response?.data?.message ||
+        "Could not update analytics preference. Please try again.";
+      Alert.alert("Error", msg);
+    } finally {
+      setSavingConsent(false);
+    }
+  };
+
   const renderSettings = () => {
     if (!isLoggedIn) {
       return renderInfo();
@@ -598,6 +652,25 @@ const AccountScreen = ({ navigation }) => {
           <Text style={[ui.textBodySm, { marginTop: spacing.sm }]}>
             Keep your account simple here, and open analytics from the dedicated performance area.
           </Text>
+
+          <View style={styles.settingsCard}>
+            <Text style={styles.settingsTitle}>Usage analytics</Text>
+            <Text style={styles.settingsBody}>
+              Share anonymous product usage with PostHog so we can improve MindMitra. No question text or personal details are included.
+            </Text>
+            <View style={styles.consentRow}>
+              <Text style={styles.consentLabel}>
+                {profile?.analyticsConsent ? "Analytics on" : "Analytics off"}
+              </Text>
+              <Switch
+                value={Boolean(profile?.analyticsConsent)}
+                onValueChange={handleAnalyticsConsentChange}
+                disabled={savingConsent}
+                trackColor={{ false: "#D6DEE8", true: colors.brand }}
+                thumbColor="#FFFFFF"
+              />
+            </View>
+          </View>
 
           <View style={styles.settingsCard}>
             <Text style={styles.settingsTitle}>Progress dashboard</Text>
@@ -842,6 +915,19 @@ const styles = StyleSheet.create({
     fontSize: type.bodySm,
     lineHeight: 24,
     color: colors.textMuted,
+  },
+  consentRow: {
+    marginTop: spacing.lg,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: spacing.md,
+  },
+  consentLabel: {
+    flex: 1,
+    fontSize: type.body,
+    fontWeight: "700",
+    color: colors.textSecondary,
   },
 });
 

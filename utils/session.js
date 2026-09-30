@@ -1,9 +1,11 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-import { SESSION_TOKEN_KEY } from "../config/backend";
+import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 import { posthog } from "../config/posthog";
 
 const LEGACY_SESSION_TOKEN_KEY = "sessionToken";
+const ANALYTICS_USER_ID_KEY = `analyticsUserId:${API_BASE_URL}`;
+const ANALYTICS_CONSENT_KEY = `analyticsConsent:${API_BASE_URL}`;
 
 export async function getStoredSessionToken() {
   const currentToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
@@ -31,6 +33,10 @@ export async function saveSessionToken(token) {
 
 export async function clearStoredSessionToken() {
   posthog?.reset();
-  await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
-  await AsyncStorage.removeItem(LEGACY_SESSION_TOKEN_KEY);
+  await AsyncStorage.multiRemove([
+    SESSION_TOKEN_KEY,
+    LEGACY_SESSION_TOKEN_KEY,
+    ANALYTICS_USER_ID_KEY,
+    ANALYTICS_CONSENT_KEY,
+  ]);
 }

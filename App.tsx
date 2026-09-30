@@ -29,6 +29,7 @@ import PerformanceScreen from "./screens/PerformanceScreen";
 import { colors, spacing } from "./styles/theme";
 import { getStoredSessionToken } from "./utils/session";
 import { posthog } from "./config/posthog";
+import { restoreAnalyticsSession, trackAppOpened } from "./utils/analytics";
 
 const Stack = createStackNavigator();
 
@@ -36,7 +37,7 @@ const PostHogNavigation = ({ children }: { children: React.ReactNode }) =>
   posthog ? (
     <PostHogProvider
       client={posthog}
-      autocapture={{ captureScreens: false, captureTouches: true, propsToCapture: ["testID"] }}
+      autocapture={{ captureScreens: false, captureTouches: false }}
     >
       {children}
     </PostHogProvider>
@@ -66,10 +67,18 @@ const App = () => {
     const restoreSession = async () => {
       try {
         const sessionToken = await getStoredSessionToken();
+        await restoreAnalyticsSession();
+        await trackAppOpened("cold");
         if (isMounted) {
           setInitialRouteName(sessionToken ? "Home" : "Login");
         }
       } catch (error) {
+        try {
+          await restoreAnalyticsSession();
+          await trackAppOpened("cold");
+        } catch (_) {
+          // analytics must not block launch
+        }
         if (isMounted) {
           setInitialRouteName("Login");
         }

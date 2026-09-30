@@ -7,7 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, layout, radii, shadow, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
 import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
-import { posthog } from "../config/posthog";
+import { captureEvent } from "../utils/analytics";
 
 function normaliseAnswer(answer) {
   return String(answer || "").trim().toLowerCase();
@@ -58,15 +58,39 @@ const QuizScreen = ({ route, navigation }) => {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [selectedAnswers, setSelectedAnswers] = useState([]);
   const questionStartAtRef = useRef(Date.now());
+  const quizStartedAtRef = useRef(null);
+  const quizStartCapturedRef = useRef(false);
+  const { launch_source: launchSource = "unknown" } = route.params || {};
 
   useEffect(() => {
     setLoading(true);
+    quizStartCapturedRef.current = false;
+    quizStartedAtRef.current = null;
     fetchRandomQuestions();
   }, [categoriesKey, subDomain, selectionsKey]);
 
   useEffect(() => {
     questionStartAtRef.current = Date.now();
   }, [currentQuestionIndex, questions.length]);
+
+  useEffect(() => {
+    if (loading || !questions.length || quizStartCapturedRef.current) {
+      return;
+    }
+    quizStartCapturedRef.current = true;
+    quizStartedAtRef.current = Date.now();
+    captureEvent("quiz_started", {
+      source: launchSource,
+      question_count: questions.length,
+      is_personalised: savedSelections.length > 0,
+      category_count:
+        savedSelections.length > 0
+          ? new Set(savedSelections.map((item) => item.category)).size
+          : Array.isArray(categories)
+            ? categories.length
+            : 0,
+    });
+  }, [loading, questions, launchSource, savedSelections, categories]);
 
   const fetchQuestionsFromEndpoint = async (endpoint, params, headers = {}) => {
     const response = await axios.get(`${API_BASE_URL}${endpoint}`, { params, headers });
@@ -196,6 +220,15 @@ const QuizScreen = ({ route, navigation }) => {
       });
     }
 
+    captureEvent("question_answered", {
+      position: currentQuestionIndex + 1,
+      correct: isCorrect,
+      latency_ms: timeTakenMs,
+      category: currentQuestion?.category || categories?.[0] || null,
+      subDomain: currentQuestion?.subDomain || currentQuestion?.domain || subDomain || null,
+      difficulty: currentQuestion?.difficulty || null,
+    });
+
     const updatedAnswers = [
       ...selectedAnswers,
       {
@@ -214,10 +247,17 @@ const QuizScreen = ({ route, navigation }) => {
       const answerCategoryLabel = savedSelections.length > 0
         ? (selectionCategories.length > 1 ? `${selectionCategories.length} categories` : selectionCategories[0])
         : (categories[0] || categories.join(','));
+      const durationMs = Math.max(
+        0,
+        Date.now() - (quizStartedAtRef.current || Date.now())
+      );
 
-      posthog?.capture('quiz_completed', {
+      captureEvent("quiz_completed", {
+        score: updatedAnswers.filter((answer) => answer.isCorrect).length,
+        correct_count: updatedAnswers.filter((answer) => answer.isCorrect).length,
         question_count: updatedAnswers.length,
-        correct_answer_count: updatedAnswers.filter((answer) => answer.isCorrect).length,
+        duration_ms: durationMs,
+        last_answer_position: updatedAnswers.length,
       });
       navigation.navigate('AnswerScreen', {
         selectedAnswers: updatedAnswers,
@@ -238,9 +278,9 @@ const QuizScreen = ({ route, navigation }) => {
           text: "Exit quiz",
           style: "destructive",
           onPress: () => {
-            posthog?.capture('quiz_exited', {
-              answered_question_count: selectedAnswers.length,
-              total_question_count: questions.length,
+            captureEvent("quiz_abandoned", {
+              position_reached: selectedAnswers.length,
+              question_count: questions.length,
             });
             navigation.navigate("Home");
           },

@@ -16,14 +16,12 @@ import {
   Dimensions,
   ScrollView
 } from "react-native";
-import axios from "axios";
 
 import { colors, shadow } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
 import { login as loginRequest } from "../services/api";
 import { getStoredSessionToken, saveSessionToken } from "../utils/session";
-import { posthog } from "../config/posthog";
+import { captureEvent, fetchCurrentUser, identifyAnalyticsUser } from "../utils/analytics";
 
 const { width } = Dimensions.get("window");
 
@@ -116,20 +114,12 @@ const LoginScreen = ({ navigation }) => {
       // Only verify if we're concerned about timing issues
       try {
         console.log("Verifying token with backend...");
-        const verifyResponse = await axios.get(`${API_BASE_URL}/api/auth/get-user-id`, {
-          headers: {
-            Authorization: `Bearer ${sessionToken}`,
-          },
-          timeout: 3000, // 3 second timeout
-        });
-        const userId = verifyResponse?.data?.userId;
-        if (userId) {
-          posthog?.identify(String(userId), {
-            $set: { email: email.trim().toLowerCase() },
-          });
-          posthog?.capture("login_completed");
+        const user = await fetchCurrentUser(sessionToken);
+        if (user?.id) {
+          await identifyAnalyticsUser(user);
+          captureEvent("login_completed");
         }
-        console.log("Token verified successfully! User ID:", userId);
+        console.log("Token verified successfully! User ID:", user?.id);
       } catch (verifyError) {
         // If verification fails, it might just be timing - token should work on next request
         // Don't block the user - let them proceed and HomeScreen will handle it

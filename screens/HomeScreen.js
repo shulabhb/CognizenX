@@ -390,6 +390,7 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate("Quiz", {
       categories: [category],
       subDomain: subDomain || null,
+      launch_source: "home_saved",
     });
   };
 
@@ -405,12 +406,14 @@ const HomeScreen = ({ navigation }) => {
       navigation.navigate("Quiz", {
         categories: [category],
         selections: categorySelections,
+        launch_source: "home_category",
       });
       return;
     }
 
     navigation.navigate("Quiz", {
       categories: [category],
+      launch_source: "home_category",
     });
   };
 
@@ -430,6 +433,7 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate("Quiz", {
       categories,
       selections: savedSelections,
+      launch_source: "home_quiz_all",
     });
   };
 

@@ -18,18 +18,18 @@ import {
   Dimensions,
   Pressable,
   ScrollView,
+  Switch,
 } from "react-native";
-import axios from "axios";
 import countries from "i18n-iso-countries";
 import en from "i18n-iso-countries/langs/en.json";
 import DateTimePicker from "@react-native-community/datetimepicker";
+import { useFocusEffect } from "@react-navigation/native";
 
 import { colors, shadow } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
 import { signup as signupRequest } from "../services/api";
 import { getStoredSessionToken, saveSessionToken } from "../utils/session";
-import { posthog } from "../config/posthog";
+import { captureEvent, identifyAnalyticsUser, fetchCurrentUser } from "../utils/analytics";
 import { EDUCATION_LEVEL_OPTIONS, getEducationLevelLabel } from "../constants/educationLevels";
 
 const { width } = Dimensions.get("window");
@@ -127,6 +127,7 @@ const SignupScreen = ({ navigation }) => {
   const [highestEducationLevel, setHighestEducationLevel] = useState("");
   const [password, setPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
+  const [analyticsConsent, setAnalyticsConsent] = useState(false);
   const [loading, setLoading] = useState(false);
   const nameRef = useRef(null);
   const emailRef = useRef(null);
@@ -139,6 +140,12 @@ const SignupScreen = ({ navigation }) => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(50)).current;
   const buttonScale = useRef(new Animated.Value(1)).current;
+
+  useFocusEffect(
+    React.useCallback(() => {
+      captureEvent("signup_started");
+    }, [])
+  );
 
   const selectedGenderLabel =
     GENDER_OPTIONS.find((g) => g.value === gender)?.label || "";
@@ -216,6 +223,7 @@ const SignupScreen = ({ navigation }) => {
         gender,
         countryOfOrigin: String(countryOfOrigin).toUpperCase(),
         highestEducationLevel,
+        analyticsConsent: Boolean(analyticsConsent),
       });
 
       const { sessionToken } = response.data;
@@ -246,23 +254,12 @@ const SignupScreen = ({ navigation }) => {
       // Only verify if we're concerned about timing issues
       try {
         console.log("Verifying token with backend...");
-        const verifyResponse = await axios.get(`${API_BASE_URL}/api/auth/get-user-id`, {
-          headers: {
-            Authorization: `Bearer ${sessionToken}`,
-          },
-          timeout: 3000, // 3 second timeout
-        });
-        const userId = verifyResponse?.data?.userId;
-        if (userId) {
-          posthog?.identify(String(userId), {
-            $set: {
-              email: email.trim().toLowerCase(),
-              name: name.trim(),
-            },
-          });
-          posthog?.capture("signup_completed");
+        const user = await fetchCurrentUser(sessionToken);
+        if (user?.id) {
+          await identifyAnalyticsUser(user);
+          captureEvent("signup_completed");
         }
-        console.log("Token verified successfully! User ID:", userId);
+        console.log("Token verified successfully! User ID:", user?.id);
       } catch (verifyError) {
         // If verification fails, it might just be timing - token should work on next request
         // Don't block the user - let them proceed and HomeScreen will handle it
@@ -446,6 +443,19 @@ const SignupScreen = ({ navigation }) => {
                   </TouchableOpacity>
                 </View>
               </View>
+
+                <View style={styles.consentRow}>
+                  <Switch
+                    value={analyticsConsent}
+                    onValueChange={setAnalyticsConsent}
+                    trackColor={{ false: "#D6DEE8", true: colors.brand }}
+                    thumbColor="#FFFFFF"
+                    accessibilityLabel="Share anonymous usage analytics"
+                  />
+                  <Text style={styles.consentText}>
+                    Share anonymous usage analytics to help improve MindMitra. No question text or personal details are included. You can change this later in Account settings.
+                  </Text>
+                </View>
 
               {loading ? (
                 <ActivityIndicator size="large" color={colors.brand} style={styles.loader} />
@@ -802,6 +812,19 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: colors.brand,
+  },
+  consentRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 18,
+    paddingHorizontal: 4,
+  },
+  consentText: {
+    flex: 1,
+    fontSize: 14,
+    lineHeight: 20,
+    color: colors.textSecondary,
   },
   input: {
     height: 60,

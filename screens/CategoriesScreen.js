@@ -23,7 +23,7 @@ import { colors, radii, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
 import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
 import { clearStoredSessionToken } from "../utils/session";
-import { posthog } from "../config/posthog";
+import { captureEvent } from "../utils/analytics";
 
 const { width, height } = Dimensions.get('window');
 
@@ -362,10 +362,11 @@ const CategoriesScreen = () => {
       return;
     }
     await logActivity(category, subDomain);
-    posthog?.capture('quiz_started', {
+    navigation.navigate('Quiz', {
+      categories: [category],
+      subDomain,
       launch_source: 'category_selection',
     });
-    navigation.navigate('Quiz', { categories: [category], subDomain });
   };
 
   const fetchSavedPreferences = async (providedToken) => {
@@ -635,8 +636,10 @@ const CategoriesScreen = () => {
       
       // Show animated notification
       showNotification(successMsg);
-      posthog?.capture('category_preferences_saved', {
-        selection_count: categoriesForMessage.length,
+      captureEvent('categories_selected', {
+        categories: [...new Set(categoriesForMessage.map((item) => item.category))],
+        count: categoriesForMessage.length,
+        is_first_time: (savedPreferences || []).length === 0,
       });
       
     } catch (error) {

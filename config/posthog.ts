@@ -17,16 +17,21 @@ if (__DEV__) {
   }
 }
 
-export const posthog = projectToken && host
-  ? new PostHog(projectToken, {
-      host,
-      captureAppLifecycleEvents: true,
-      errorTracking: {
-        autocapture: {
-          uncaughtExceptions: true,
-          unhandledRejections: true,
+export const posthog =
+  projectToken && host
+    ? new PostHog(projectToken, {
+        host,
+        // Prefer explicit `app_opened` (see utils/analytics.js) over SDK lifecycle names.
+        captureAppLifecycleEvents: false,
+        preloadFeatureFlags: true,
+        // Default opt-out until consent is applied (signup checkbox / Account toggle).
+        defaultOptIn: false,
+        errorTracking: {
+          autocapture: {
+            uncaughtExceptions: true,
+            unhandledRejections: true,
+          },
         },
-      },
-      debug: __DEV__,
-    })
-  : undefined;
+        debug: __DEV__,
+      })
+    : undefined;
