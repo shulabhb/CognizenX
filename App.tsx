@@ -1,3 +1,4 @@
+import "./utils/http";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
@@ -26,10 +27,12 @@ import SteadyFocusGame from "./screens/SteadyFocusGame";
 import OrderStepsGame from "./screens/OrderStepsGame";
 import AccountScreen from "./screens/AccountScreen";
 import PerformanceScreen from "./screens/PerformanceScreen";
+import ForceUpdateScreen from "./screens/ForceUpdateScreen";
 import { colors, spacing } from "./styles/theme";
 import { getStoredSessionToken } from "./utils/session";
 import { posthog } from "./config/posthog";
 import { restoreAnalyticsSession, trackAppOpened } from "./utils/analytics";
+import { setForceUpdateHandler } from "./utils/http";
 
 const Stack = createStackNavigator();
 
@@ -60,6 +63,20 @@ const LaunchScreen = () => (
 
 const App = () => {
   const [initialRouteName, setInitialRouteName] = useState<string | null>(null);
+  const [forceUpdate, setForceUpdate] = useState<{
+    message?: string;
+    minSupportedAppVersion?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    setForceUpdateHandler((payload) => {
+      setForceUpdate({
+        message: payload?.message,
+        minSupportedAppVersion: payload?.minSupportedAppVersion,
+      });
+    });
+    return () => setForceUpdateHandler(null);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -91,6 +108,15 @@ const App = () => {
       isMounted = false;
     };
   }, []);
+
+  if (forceUpdate) {
+    return (
+      <ForceUpdateScreen
+        message={forceUpdate.message}
+        minSupportedAppVersion={forceUpdate.minSupportedAppVersion}
+      />
+    );
+  }
 
   if (!initialRouteName) {
     return <LaunchScreen />;

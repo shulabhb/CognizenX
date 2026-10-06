@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-import { API_BASE_URL } from '../config/backend';
+import { API_URL } from '../config/backend';
 import { getStoredSessionToken } from '../utils/session';
 import { getGameById } from '../constants/gamesRegistry';
 import { captureEvent } from '../utils/analytics';
@@ -27,7 +27,7 @@ async function submitRemoteSession(sessionPayload, retryOnce = true) {
   }
 
   try {
-    await axios.post(`${API_BASE_URL}/api/games/sessions`, sessionPayload, {
+    await axios.post(`${API_URL}/games/sessions`, sessionPayload, {
       headers: { Authorization: `Bearer ${sessionToken}` },
       timeout: 10000,
     });

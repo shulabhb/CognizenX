@@ -6,7 +6,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { colors, layout, radii, shadow, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { API_BASE_URL, API_URL, API_PREFIX, SESSION_TOKEN_KEY } from "../config/backend";
 import { captureEvent } from "../utils/analytics";
 
 function normaliseAnswer(answer) {
@@ -100,10 +100,10 @@ const QuizScreen = ({ route, navigation }) => {
   const getQuizRequestConfig = async () => {
     const sessionToken = await AsyncStorage.getItem(SESSION_TOKEN_KEY);
     if (!sessionToken) {
-      return { endpoint: '/api/random-questions', headers: {} };
+      return { endpoint: `${API_PREFIX}/random-questions`, headers: {} };
     }
     return {
-      endpoint: '/api/user-quiz',
+      endpoint: `${API_PREFIX}/user-quiz`,
       headers: {
         Authorization: `Bearer ${sessionToken}`,
       },
@@ -128,9 +128,9 @@ const QuizScreen = ({ route, navigation }) => {
                 headers
               );
             } catch (error) {
-              if (endpoint === '/api/user-quiz') {
+              if (endpoint === `${API_PREFIX}/user-quiz`) {
                 return fetchQuestionsFromEndpoint(
-                  '/api/random-questions',
+                  `${API_PREFIX}/random-questions`,
                   {
                     categories: selection.category,
                     subDomain: selection.subDomain,
@@ -158,8 +158,8 @@ const QuizScreen = ({ route, navigation }) => {
       try {
         fetchedQuestions = await fetchQuestionsFromEndpoint(endpoint, params, headers);
       } catch (error) {
-        if (endpoint === '/api/user-quiz') {
-          fetchedQuestions = await fetchQuestionsFromEndpoint('/api/random-questions', params);
+        if (endpoint === `${API_PREFIX}/user-quiz`) {
+          fetchedQuestions = await fetchQuestionsFromEndpoint(`${API_PREFIX}/random-questions`, params);
         } else {
           throw error;
         }
@@ -176,7 +176,7 @@ const QuizScreen = ({ route, navigation }) => {
   };
 
   const postAttempt = async (sessionToken, payload) => {
-    await axios.post(`${API_BASE_URL}/api/trivia/attempts`, payload, {
+    await axios.post(`${API_URL}/trivia/attempts`, payload, {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${sessionToken}`,

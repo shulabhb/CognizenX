@@ -2,7 +2,7 @@ import { Platform } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import axios from "axios";
 
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, API_URL } from "../config/backend";
 import { posthog } from "../config/posthog";
 import { getStoredSessionToken } from "./session";
 
@@ -106,7 +106,7 @@ export async function fetchCurrentUser(sessionToken) {
   const token = sessionToken || (await getStoredSessionToken());
   if (!token) return null;
 
-  const resp = await axios.get(`${API_BASE_URL}/api/users/me`, {
+  const resp = await axios.get(`${API_URL}/users/me`, {
     headers: { Authorization: `Bearer ${token}` },
     timeout: 8000,
   });

@@ -6,7 +6,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { colors, isTablet, layout, radii, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { API_URL, SESSION_TOKEN_KEY } from "../config/backend";
 import { getStoredSessionToken } from "../utils/session";
 import { captureEvent } from "../utils/analytics";
 import Ionicons from 'react-native-vector-icons/Ionicons';
@@ -155,7 +155,7 @@ const AnswerScreen = ({ route, navigation }) => {
           return;
         }
 
-        const metricsResp = await axios.get(`${API_BASE_URL}/api/trivia/metrics/daily`, {
+        const metricsResp = await axios.get(`${API_URL}/trivia/metrics/daily`, {
           headers: { Authorization: `Bearer ${sessionToken}` },
           params: { days: 365 },
         });
@@ -223,7 +223,7 @@ const AnswerScreen = ({ route, navigation }) => {
       // Call backend endpoint to generate explanation
       // Include questionId, category, and subDomain for caching
       const response = await axios.post(
-        `${API_BASE_URL}/api/generate-explanation`,
+        `${API_URL}/generate-explanation`,
         {
           question: question,
           userAnswer: userAnswer,
@@ -344,7 +344,7 @@ const AnswerScreen = ({ route, navigation }) => {
       const correctAnswer = currentQuestion?.correctAnswer || currentQuestion?.correct_answer || '';
 
       await axios.post(
-        `${API_BASE_URL}/api/reports`,
+        `${API_URL}/reports`,
         {
           type: 'answer_review',
           notes,

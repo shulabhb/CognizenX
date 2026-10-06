@@ -15,7 +15,7 @@ import Ionicons from 'react-native-vector-icons/Ionicons';
 
 import { colors, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL } from "../config/backend";
+import { API_URL } from "../config/backend";
 import { captureEvent } from "../utils/analytics";
 import { clearStoredSessionToken, getStoredSessionToken } from "../utils/session";
 
@@ -62,7 +62,7 @@ const Menu = ({ navigation, isOpen, closeMenu, menuAnimation, isLoggedIn, handle
                   return;
                 }
                 
-                await axios.delete(`${API_BASE_URL}/api/auth/delete-account`, {
+                await axios.delete(`${API_URL}/auth/delete-account`, {
                   headers: { Authorization: `Bearer ${sessionToken}` },
                 });
                 

@@ -21,7 +21,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Menu, { getMenuWidth } from './Menu'; // Import the Menu component
 import { colors, radii, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { API_URL, SESSION_TOKEN_KEY } from "../config/backend";
 import { clearStoredSessionToken } from "../utils/session";
 import { captureEvent } from "../utils/analytics";
 
@@ -260,7 +260,7 @@ const CategoriesScreen = () => {
         let response;
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
           try {
-            response = await axios.get(`${API_BASE_URL}/api/auth/get-user-id`, {
+            response = await axios.get(`${API_URL}/auth/get-user-id`, {
               headers: {
                 Authorization: `Bearer ${sessionToken.trim()}`,
               },
@@ -331,7 +331,7 @@ const CategoriesScreen = () => {
         return;
       }
       await axios.post(
-        `${API_BASE_URL}/api/log-activity`,
+        `${API_URL}/log-activity`,
         // Backward compatibility: some deployed backends still validate `domain`.
         // Send both until all environments are migrated.
         { category, subDomain, domain: subDomain },
@@ -377,7 +377,7 @@ const CategoriesScreen = () => {
         return;
       }
 
-      const response = await axios.get(`${API_BASE_URL}/api/user-preferences`, {
+      const response = await axios.get(`${API_URL}/user-preferences`, {
         headers: {
           Authorization: `Bearer ${sessionToken.trim()}`,
         },
@@ -527,7 +527,7 @@ const CategoriesScreen = () => {
       
       // First, fetch current preferences
       const currentPrefsResponse = await axios.get(
-        `${API_BASE_URL}/api/user-preferences`,
+        `${API_URL}/user-preferences`,
         {
           headers: { Authorization: `Bearer ${sessionToken.trim()}` },
         }

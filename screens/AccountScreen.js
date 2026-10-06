@@ -21,7 +21,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import countries from "i18n-iso-countries";
 import en from "i18n-iso-countries/langs/en.json";
 
-import { API_BASE_URL } from "../config/backend";
+import { API_URL } from "../config/backend";
 import { colors, radii, spacing, type } from "../styles/theme";
 import { ui } from "../styles/ui";
 import { getStoredSessionToken } from "../utils/session";
@@ -129,7 +129,7 @@ const AccountScreen = ({ navigation }) => {
 
       const headers = { Authorization: `Bearer ${sessionToken}` };
 
-      const userResp = await axios.get(`${API_BASE_URL}/api/users/me`, { headers });
+      const userResp = await axios.get(`${API_URL}/users/me`, { headers });
       const u = userResp?.data?.user || null;
       setProfile(u);
       hydrateDraftFromProfile(u);
@@ -262,7 +262,7 @@ const AccountScreen = ({ navigation }) => {
           return;
         }
 
-        const resp = await axios.patch(`${API_BASE_URL}/api/users/me`, payload, { headers });
+        const resp = await axios.patch(`${API_URL}/users/me`, payload, { headers });
         const updated = resp?.data?.user || null;
         setProfile(updated);
         hydrateDraftFromProfile(updated);
@@ -605,7 +605,7 @@ const AccountScreen = ({ navigation }) => {
       const sessionToken = await getStoredSessionToken();
       const headers = { Authorization: `Bearer ${sessionToken}` };
       const resp = await axios.patch(
-        `${API_BASE_URL}/api/users/me`,
+        `${API_URL}/users/me`,
         { analyticsConsent: Boolean(nextValue) },
         { headers }
       );

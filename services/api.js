@@ -1,11 +1,14 @@
 import axios from "axios";
 
 import { AUTH_BASE_URL } from "../config/backend";
+import { configureAxiosInstance } from "../utils/http";
 
-const API = axios.create({
-	baseURL: AUTH_BASE_URL,
-	timeout: 20000,
-});
+const API = configureAxiosInstance(
+	axios.create({
+		baseURL: AUTH_BASE_URL,
+		timeout: 20000,
+	})
+);
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
@@ -43,4 +46,3 @@ export const requestPasswordReset = (email) => API.post("/request-password-reset
 
 // Reset password using token received via email (backend should accept token and newPassword)
 export const resetPassword = (token, newPassword) => API.post("/reset-password", { token, password: newPassword });
-
