@@ -1,3 +1,6 @@
+import { initSentry, Sentry } from "./config/sentry";
+initSentry();
+
 import "./utils/http";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
@@ -289,4 +292,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+export default Sentry.wrap(App);
