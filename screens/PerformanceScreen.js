@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import axios from "axios";
 import { useFocusEffect } from "@react-navigation/native";
 
-import { API_BASE_URL } from "../config/backend";
+import { API_URL } from "../config/backend";
 import { getGameById } from "../constants/gamesRegistry";
 import { colors, radii, spacing, type } from "../styles/theme";
 import { ui } from "../styles/ui";
@@ -124,15 +124,15 @@ const PerformanceScreen = ({ navigation }) => {
 
       const headers = { Authorization: `Bearer ${sessionToken}` };
       const [quizResult, gameDailyResult, gameSummaryResult] = await Promise.allSettled([
-        axios.get(`${API_BASE_URL}/api/trivia/metrics/daily`, {
+        axios.get(`${API_URL}/trivia/metrics/daily`, {
           headers,
           params: { days: metricsDays },
         }),
-        axios.get(`${API_BASE_URL}/api/games/metrics/daily`, {
+        axios.get(`${API_URL}/games/metrics/daily`, {
           headers,
           params: { days: metricsDays },
         }),
-        axios.get(`${API_BASE_URL}/api/games/metrics/summary`, { headers }),
+        axios.get(`${API_URL}/games/metrics/summary`, { headers }),
       ]);
 
       if (quizResult.status === "fulfilled") {

@@ -20,7 +20,7 @@ import Menu, { getMenuWidth } from "./Menu"; // Import the Menu component
 import { useFocusEffect } from "@react-navigation/native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Ionicons from "react-native-vector-icons/Ionicons";
-import { API_BASE_URL } from "../config/backend";
+import { API_BASE_URL, API_URL } from "../config/backend";
 import { clearStoredSessionToken, getStoredSessionToken } from "../utils/session";
 
 // Category emojis mapping
@@ -223,7 +223,7 @@ const HomeScreen = ({ navigation }) => {
               console.log(`Retrying preferences fetch (attempt ${attempt + 1}/${retries + 1})...`);
             }
             
-            response = await axios.get(`${API_BASE_URL}/api/user-preferences`, {
+            response = await axios.get(`${API_URL}/user-preferences`, {
               headers: {
                 Authorization: `Bearer ${trimmedToken}`,
               },
@@ -270,7 +270,7 @@ const HomeScreen = ({ navigation }) => {
         }
 
         try {
-          const userResponse = await axios.get(`${API_BASE_URL}/api/users/me`, {
+          const userResponse = await axios.get(`${API_URL}/users/me`, {
             headers: {
               Authorization: `Bearer ${trimmedToken}`,
             },
@@ -390,6 +390,7 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate("Quiz", {
       categories: [category],
       subDomain: subDomain || null,
+      launch_source: "home_saved",
     });
   };
 
@@ -405,12 +406,14 @@ const HomeScreen = ({ navigation }) => {
       navigation.navigate("Quiz", {
         categories: [category],
         selections: categorySelections,
+        launch_source: "home_category",
       });
       return;
     }
 
     navigation.navigate("Quiz", {
       categories: [category],
+      launch_source: "home_category",
     });
   };
 
@@ -430,6 +433,7 @@ const HomeScreen = ({ navigation }) => {
     navigation.navigate("Quiz", {
       categories,
       selections: savedSelections,
+      launch_source: "home_quiz_all",
     });
   };
 

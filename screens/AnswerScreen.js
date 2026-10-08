@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, Alert, StatusBar, ScrollView, Modal, Pressable, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import axios from 'axios';
@@ -6,8 +6,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { colors, isTablet, layout, radii, spacing, type } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { API_URL, SESSION_TOKEN_KEY } from "../config/backend";
 import { getStoredSessionToken } from "../utils/session";
+import { captureEvent } from "../utils/analytics";
 import Ionicons from 'react-native-vector-icons/Ionicons';
 
 function safePct(numerator, denominator) {
@@ -66,6 +67,29 @@ const AnswerScreen = ({ route, navigation }) => {
   const [reportVisible, setReportVisible] = useState(false);
   const [reportNotes, setReportNotes] = useState('');
   const [reportSubmitting, setReportSubmitting] = useState(false);
+  const explanationShownAtRef = useRef(null);
+  const explanationPositionRef = useRef(null);
+
+  const flushExplanationView = () => {
+    if (explanationShownAtRef.current == null || explanationPositionRef.current == null) {
+      return;
+    }
+    const dwellMs = Math.max(0, Date.now() - explanationShownAtRef.current);
+    captureEvent("explanation_viewed", {
+      question_position: explanationPositionRef.current,
+      dwell_ms: dwellMs,
+    });
+    explanationShownAtRef.current = null;
+    explanationPositionRef.current = null;
+  };
+
+  useEffect(() => () => {
+    flushExplanationView();
+  }, []);
+
+  useEffect(() => {
+    flushExplanationView();
+  }, [currentIndex]);
 
   const sessionSummary = useMemo(() => {
     const attempts = selectedAnswers.length;
@@ -131,7 +155,7 @@ const AnswerScreen = ({ route, navigation }) => {
           return;
         }
 
-        const metricsResp = await axios.get(`${API_BASE_URL}/api/trivia/metrics/daily`, {
+        const metricsResp = await axios.get(`${API_URL}/trivia/metrics/daily`, {
           headers: { Authorization: `Bearer ${sessionToken}` },
           params: { days: 365 },
         });
@@ -199,7 +223,7 @@ const AnswerScreen = ({ route, navigation }) => {
       // Call backend endpoint to generate explanation
       // Include questionId, category, and subDomain for caching
       const response = await axios.post(
-        `${API_BASE_URL}/api/generate-explanation`,
+        `${API_URL}/generate-explanation`,
         {
           question: question,
           userAnswer: userAnswer,
@@ -218,6 +242,8 @@ const AnswerScreen = ({ route, navigation }) => {
 
       if (response.data.status === 'success') {
         setDescription(response.data.explanation || "Could not generate a description at this time.");
+        explanationShownAtRef.current = Date.now();
+        explanationPositionRef.current = currentIndex + 1;
       } else {
         setDescription("Error generating description. Please try again later.");
       }
@@ -318,7 +344,7 @@ const AnswerScreen = ({ route, navigation }) => {
       const correctAnswer = currentQuestion?.correctAnswer || currentQuestion?.correct_answer || '';
 
       await axios.post(
-        `${API_BASE_URL}/api/reports`,
+        `${API_URL}/reports`,
         {
           type: 'answer_review',
           notes,
@@ -344,6 +370,10 @@ const AnswerScreen = ({ route, navigation }) => {
 
       setReportVisible(false);
       setReportNotes('');
+      captureEvent('question_reported', {
+        reason_length: notes.length,
+        question_position: currentIndex + 1,
+      });
       Alert.alert('Report saved', 'Thanks for flagging this. We will review the question and answer.');
     } catch (error) {
       const message = error?.response?.data?.message || 'Could not save this report right now. Please try again.';

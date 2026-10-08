@@ -77,6 +77,31 @@ jest.mock('@react-navigation/stack', () => {
   };
 });
 
+// posthog-react-native instantiates its client (and probes for native storage)
+// as soon as config/posthog.ts is imported, not when it's actually used —
+// unlike config/sentry.ts, which only acts when initSentry() is called. That
+// eager init has no native AsyncStorage bridge to find in the Jest environment
+// ("No storage available"), so mock the package itself for unit tests.
+jest.mock('posthog-react-native', () => {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const React = require('react');
+
+  class MockPostHog {
+    capture() {}
+    identify() {}
+    screen() {}
+    flush() {}
+    optIn() {}
+    optOut() {}
+  }
+
+  return {
+    __esModule: true,
+    default: MockPostHog,
+    PostHogProvider: ({ children }) => React.createElement(React.Fragment, null, children),
+  };
+});
+
 // Native date picker ships ESM; mock it for unit tests.
 jest.mock('@react-native-community/datetimepicker', () => {
   // eslint-disable-next-line @typescript-eslint/no-var-requires

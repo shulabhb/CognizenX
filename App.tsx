@@ -1,8 +1,13 @@
+import { initSentry, Sentry } from "./config/sentry";
+initSentry();
+
+import "./utils/http";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { PostHogProvider } from "posthog-react-native";
 import SignupScreen from "./screens/SignupScreen";
 import LoginScreen from "./screens/LoginScreen";
 import ForgotPasswordScreen from "./screens/ForgotPasswordScreen";
@@ -25,10 +30,26 @@ import SteadyFocusGame from "./screens/SteadyFocusGame";
 import OrderStepsGame from "./screens/OrderStepsGame";
 import AccountScreen from "./screens/AccountScreen";
 import PerformanceScreen from "./screens/PerformanceScreen";
+import ForceUpdateScreen from "./screens/ForceUpdateScreen";
 import { colors, spacing } from "./styles/theme";
 import { getStoredSessionToken } from "./utils/session";
+import { posthog } from "./config/posthog";
+import { restoreAnalyticsSession, trackAppOpened } from "./utils/analytics";
+import { setForceUpdateHandler } from "./utils/http";
 
 const Stack = createStackNavigator();
+
+const PostHogNavigation = ({ children }: { children: React.ReactNode }) =>
+  posthog ? (
+    <PostHogProvider
+      client={posthog}
+      autocapture={{ captureScreens: false, captureTouches: false }}
+    >
+      {children}
+    </PostHogProvider>
+  ) : (
+    <>{children}</>
+  );
 
 const LaunchScreen = () => (
   <SafeAreaView style={styles.launchScreen}>
@@ -45,6 +66,20 @@ const LaunchScreen = () => (
 
 const App = () => {
   const [initialRouteName, setInitialRouteName] = useState<string | null>(null);
+  const [forceUpdate, setForceUpdate] = useState<{
+    message?: string;
+    minSupportedAppVersion?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    setForceUpdateHandler((payload) => {
+      setForceUpdate({
+        message: payload?.message,
+        minSupportedAppVersion: payload?.minSupportedAppVersion,
+      });
+    });
+    return () => setForceUpdateHandler(null);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -52,10 +87,18 @@ const App = () => {
     const restoreSession = async () => {
       try {
         const sessionToken = await getStoredSessionToken();
+        await restoreAnalyticsSession();
+        await trackAppOpened("cold");
         if (isMounted) {
           setInitialRouteName(sessionToken ? "Home" : "Login");
         }
       } catch (error) {
+        try {
+          await restoreAnalyticsSession();
+          await trackAppOpened("cold");
+        } catch (_) {
+          // analytics must not block launch
+        }
         if (isMounted) {
           setInitialRouteName("Login");
         }
@@ -69,13 +112,23 @@ const App = () => {
     };
   }, []);
 
+  if (forceUpdate) {
+    return (
+      <ForceUpdateScreen
+        message={forceUpdate.message}
+        minSupportedAppVersion={forceUpdate.minSupportedAppVersion}
+      />
+    );
+  }
+
   if (!initialRouteName) {
     return <LaunchScreen />;
   }
 
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName={initialRouteName}>
+      <PostHogNavigation>
+        <Stack.Navigator initialRouteName={initialRouteName}>
         <Stack.Screen
           name="Home"
           component={HomeScreen}
@@ -191,7 +244,8 @@ const App = () => {
           component={QuizScreen}
           options={{ headerShown: false }}
         />
-      </Stack.Navigator>
+        </Stack.Navigator>
+      </PostHogNavigation>
     </NavigationContainer>
   );
 };
@@ -238,4 +292,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default App;
+export default Sentry.wrap(App);

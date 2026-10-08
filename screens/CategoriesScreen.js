@@ -21,7 +21,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import Menu, { getMenuWidth } from './Menu'; // Import the Menu component
 import { colors, radii, shadow, spacing } from '../styles/theme';
 import { ui } from '../styles/ui';
-import { API_BASE_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { API_URL, SESSION_TOKEN_KEY } from "../config/backend";
+import { clearStoredSessionToken } from "../utils/session";
+import { captureEvent } from "../utils/analytics";
 
 const { width, height } = Dimensions.get('window');
 
@@ -258,7 +260,7 @@ const CategoriesScreen = () => {
         let response;
         for (let attempt = 1; attempt <= maxAttempts; attempt++) {
           try {
-            response = await axios.get(`${API_BASE_URL}/api/auth/get-user-id`, {
+            response = await axios.get(`${API_URL}/auth/get-user-id`, {
               headers: {
                 Authorization: `Bearer ${sessionToken.trim()}`,
               },
@@ -286,8 +288,7 @@ const CategoriesScreen = () => {
 
         // Only clear tokens on confirmed auth failure.
         if (error.response?.status === 401) {
-          await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
-          await AsyncStorage.removeItem('sessionToken');
+          await clearStoredSessionToken();
           setIsLoggedIn(false);
 
           const errorMessage =
@@ -330,7 +331,7 @@ const CategoriesScreen = () => {
         return;
       }
       await axios.post(
-        `${API_BASE_URL}/api/log-activity`,
+        `${API_URL}/log-activity`,
         // Backward compatibility: some deployed backends still validate `domain`.
         // Send both until all environments are migrated.
         { category, subDomain, domain: subDomain },
@@ -361,7 +362,11 @@ const CategoriesScreen = () => {
       return;
     }
     await logActivity(category, subDomain);
-    navigation.navigate('Quiz', { categories: [category], subDomain });
+    navigation.navigate('Quiz', {
+      categories: [category],
+      subDomain,
+      launch_source: 'category_selection',
+    });
   };
 
   const fetchSavedPreferences = async (providedToken) => {
@@ -372,7 +377,7 @@ const CategoriesScreen = () => {
         return;
       }
 
-      const response = await axios.get(`${API_BASE_URL}/api/user-preferences`, {
+      const response = await axios.get(`${API_URL}/user-preferences`, {
         headers: {
           Authorization: `Bearer ${sessionToken.trim()}`,
         },
@@ -404,8 +409,7 @@ const CategoriesScreen = () => {
   // Handle logout
   const handleLogout = async () => {
     try {
-      await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
-      await AsyncStorage.removeItem('sessionToken');
+      await clearStoredSessionToken();
       Alert.alert('Logout Successful', 'You have been logged out.');
       navigation.replace('Login');
     } catch (error) {
@@ -523,7 +527,7 @@ const CategoriesScreen = () => {
       
       // First, fetch current preferences
       const currentPrefsResponse = await axios.get(
-        `${API_BASE_URL}/api/user-preferences`,
+        `${API_URL}/user-preferences`,
         {
           headers: { Authorization: `Bearer ${sessionToken.trim()}` },
         }
@@ -632,6 +636,11 @@ const CategoriesScreen = () => {
       
       // Show animated notification
       showNotification(successMsg);
+      captureEvent('categories_selected', {
+        categories: [...new Set(categoriesForMessage.map((item) => item.category))],
+        count: categoriesForMessage.length,
+        is_first_time: (savedPreferences || []).length === 0,
+      });
       
     } catch (error) {
       console.error('Error adding categories:', error);
@@ -641,8 +650,7 @@ const CategoriesScreen = () => {
       // Check if it's an authentication error
       if (error.response?.status === 401) {
         // Clear invalid token
-        await AsyncStorage.removeItem(SESSION_TOKEN_KEY);
-        await AsyncStorage.removeItem('sessionToken');
+        await clearStoredSessionToken();
         Alert.alert(
           'Authentication Required',
           'Your session has expired. Please log in again to add categories.',

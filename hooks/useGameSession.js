@@ -2,9 +2,10 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 
-import { API_BASE_URL } from '../config/backend';
+import { API_URL } from '../config/backend';
 import { getStoredSessionToken } from '../utils/session';
 import { getGameById } from '../constants/gamesRegistry';
+import { captureEvent } from '../utils/analytics';
 
 const LOCAL_SESSIONS_KEY = 'gameSessions:local';
 
@@ -26,7 +27,7 @@ async function submitRemoteSession(sessionPayload, retryOnce = true) {
   }
 
   try {
-    await axios.post(`${API_BASE_URL}/api/games/sessions`, sessionPayload, {
+    await axios.post(`${API_URL}/games/sessions`, sessionPayload, {
       headers: { Authorization: `Bearer ${sessionToken}` },
       timeout: 10000,
     });
@@ -72,7 +73,12 @@ export function useGameSession(gameId, difficulty = 'easy') {
     setMetrics({});
     setIsActive(true);
     setIsPaused(false);
-  }, []);
+    captureEvent('game_started', {
+      gameId,
+      cognitiveDomains: gameMeta?.cognitiveDomains || [],
+      difficulty,
+    });
+  }, [difficulty, gameId, gameMeta]);
 
   const pauseSession = useCallback(() => {
     clearAllTimers();
@@ -113,6 +119,14 @@ export function useGameSession(gameId, difficulty = 'easy') {
     setIsActive(false);
     await saveLocalSession(payload);
     await submitRemoteSession(payload);
+
+    captureEvent(completed ? 'game_completed' : 'game_abandoned', {
+      gameId,
+      cognitiveDomains: gameMeta?.cognitiveDomains || [],
+      difficulty,
+      score: finalScore,
+      duration_ms: durationMs,
+    });
 
     return payload;
   }, [difficulty, gameId, gameMeta, metrics, moves, score]);
