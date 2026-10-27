@@ -117,27 +117,32 @@ const AnswerScreen = ({ route, navigation }) => {
   }, [selectedAnswers]);
 
   useEffect(() => {
-    if (questions[currentIndex] && selectedAnswers[currentIndex]) {
-      const currentQuestion = questions[currentIndex];
-      // Ensure questionId is a string (MongoDB ObjectId as string)
-      const questionId = currentQuestion._id?.toString() || currentQuestion._id || null;
-      console.log('Fetching explanation for question:', {
-        questionId,
-        category,
-        subDomain,
-        hasId: !!currentQuestion._id
-      });
-      fetchDescription(
-        currentQuestion.question,
-        selectedAnswers[currentIndex].answer,
-        currentQuestion.correctAnswer || currentQuestion.correct_answer,
-        questionId, // MongoDB ObjectId as string
-        category,
-        subDomain
-      );
-    } else {
+    const currentQuestion = questions[currentIndex];
+    const selected = selectedAnswers[currentIndex];
+    if (!currentQuestion || !selected) {
       setDescription("No data available for this question.");
+      setLoading(false);
+      return;
     }
+
+    const storedExplanation = String(currentQuestion.explanation || "").trim();
+    if (storedExplanation) {
+      setDescription(storedExplanation);
+      setLoading(false);
+      explanationShownAtRef.current = Date.now();
+      explanationPositionRef.current = currentIndex + 1;
+      return;
+    }
+
+    const questionId = currentQuestion._id?.toString() || currentQuestion._id || null;
+    fetchDescription(
+      currentQuestion.question,
+      selected.answer,
+      currentQuestion.correctAnswer || currentQuestion.correct_answer,
+      questionId,
+      currentQuestion.category || category,
+      currentQuestion.subDomain || currentQuestion.domain || subDomain
+    );
   }, [currentIndex]);
 
   useEffect(() => {
