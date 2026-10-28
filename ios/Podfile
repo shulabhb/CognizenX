@@ -26,9 +26,6 @@ target 'BasicApp' do
     :app_path => "#{Pod::Config.instance.installation_root}/..",
     :hermes_enabled => false # Ensure Hermes is disabled if not needed
   )
-  
-  # Keep stable architecture for now
-  ENV['RCT_NEW_ARCH_ENABLED'] = '0'
 
   target 'BasicAppTests' do
     inherit! :complete

@@ -1,5 +1,6 @@
 #import "RCTAppDelegate.h"
-#import <React/RCTBundleURLProvider.h> // Ensure this is imported
+#import <React/RCTBundleURLProvider.h>
+#import <ReactAppDependencyProvider/RCTAppDependencyProvider.h>
 
 @interface AppDelegate : RCTAppDelegate
 @end
@@ -9,6 +10,7 @@
 - (BOOL)application:(UIApplication *)application didFinishLaunchingWithOptions:(NSDictionary *)launchOptions
 {
   self.moduleName = @"BasicApp";
+  self.dependencyProvider = [RCTAppDependencyProvider new];
   self.initialProps = @{};
 
   return [super application:application didFinishLaunchingWithOptions:launchOptions];
